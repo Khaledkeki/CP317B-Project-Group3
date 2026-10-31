@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Find a car | Car Rental System{% endblock %}
+{% block content %}
+{% macro input_field(key, label, type='text', required=false, min='', max='', step='') %}
+<div class="form-field search-field">
+  <label for="{{ key }}">{{ label }}</label>
+  <input id="{{ key }}" name="{{ key }}" type="{{ type }}" value="{{ values.get(key, '') }}" {% if required %}required{% endif %}
+    {% if min %}min="{{ min }}"{% endif %} {% if max %}max="{{ max }}"{% endif %} {% if step %}step="{{ step }}"{% endif %}
+    {% if errors.get(key) %}aria-invalid="true" aria-describedby="{{ key }}-error"{% endif %}>
+  <p class="field-error" id="{{ key }}-error" {% if not errors.get(key) %}hidden{% endif %}>{{ errors.get(key, '') }}</p>
+</div>
+{% endmacro %}
+{% macro select_field(key, label, options, required=false) %}
+<div class="form-field search-field">
+  <label for="{{ key }}">{{ label }}</label>
+  <select id="{{ key }}" name="{{ key }}" {% if required %}required{% endif %} {% if errors.get(key) %}aria-invalid="true" aria-describedby="{{ key }}-error"{% endif %}>
+    <option value="">{{ 'Choose a branch' if required else 'Any' }}</option>
+    {% for value, label in options.items() %}<option value="{{ value }}" {% if values.get(key, '') | lower == value | lower %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <p class="field-error" id="{{ key }}-error" {% if not errors.get(key) %}hidden{% endif %}>{{ errors.get(key, '') }}</p>
+</div>
+{% endmacro %}
+<section class="fleet-panel search-panel" aria-labelledby="page-title">
+  <p class="eyebrow">Find your fit</p><h1 class="page-title" id="page-title">Find a car</h1>
+  <p class="intro">Choose a branch and dates, then narrow your options.</p>
+  <form id="search-form" method="get" action="/search" class="search-form" data-searched="{{ 'true' if submitted else 'false' }}">
+    <div class="search-primary">
+      {{ select_field('branch', 'Branch', branches, true) }}
+      {{ input_field('pickup', 'Pickup date and time', type='datetime-local', required=true) }}
+      {{ input_field('return_time', 'Return date and time', type='datetime-local', required=true) }}
+    </div>
+    <fieldset class="search-filters"><legend>Filters <span class="field-hint">(optional)</span></legend>
+      <div class="search-filter-grid">
+        {{ select_field('vehicle_type', 'Vehicle type', choices.vehicle_type) }}
+        {{ select_field('category', 'Category', choices.category) }}
+        {{ input_field('max_price', 'Maximum daily rate ($)', type='number', min='0.01', max='9999.99', step='0.01') }}
+        {{ input_field('seats', 'Minimum seats', type='number', min='1', max='15', step='1') }}
+        {{ select_field('transmission', 'Transmission', choices.transmission) }}
+        {{ select_field('fuel_type', 'Fuel type', choices.fuel_type) }}
+      </div>
+    </fieldset>
+    <div class="search-actions"><button class="button" type="submit">Search cars</button><a href="/search">Reset search</a></div>
+  </form>
+  <p class="search-notice">Results show cars available for the selected dates. Times use the rental location&rsquo;s local server time.</p>
+  <div id="search-results" aria-live="polite" aria-atomic="true">
+    {% if errors %}<div class="message error" role="alert">Please correct the highlighted fields and search again.</div>
+    {% elif submitted %}
+      <h2>{{ vehicles | length }} car{{ '' if vehicles | length == 1 else 's' }} found</h2>
+      {% if vehicles %}<div class="vehicle-grid">
+      {% for vehicle in vehicles %}<article class="vehicle-card">
+        <div class="vehicle-heading"><span class="eyebrow">{{ choices.category[vehicle.category] }}</span><span class="status-badge">Available</span></div>
+        <h3>{{ vehicle.name }}</h3><p class="vehicle-rate">${{ vehicle.daily_rate }} <span>per day</span></p>
+        <dl class="vehicle-details"><dt>Branch</dt><dd>{{ vehicle.branch }}</dd><dt>Type</dt><dd>{{ choices.vehicle_type[vehicle.vehicle_type] }}</dd>
+        <dt>Seats</dt><dd>{{ vehicle.seats }}</dd><dt>Transmission</dt><dd>{{ choices.transmission[vehicle.transmission] }}</dd><dt>Fuel</dt><dd>{{ choices.fuel_type[vehicle.fuel_type] }}</dd></dl>
+        <a class="button secondary" href="/reservations/review?vehicle_id={{ vehicle.id }}&amp;{{ request.url.query }}" aria-label="Select {{ vehicle.name }} ({{ vehicle.fleet_code }})">Select car</a>
+      </article>{% endfor %}</div>
+      {% else %}<div class="empty-state"><h3>No cars match your search</h3><p>Try a different branch or adjust your filters.</p></div>{% endif %}
+    {% else %}<div class="empty-state"><h2>Ready when you are</h2><p>Enter a branch and rental dates to see available cars.</p></div>{% endif %}
+  </div>
+</section>
+<script src="{{ url_for('static', path='/js/search.js') }}" defer></script>
+{% endblock %}

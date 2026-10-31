@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Staff account | Car Rental System{% endblock %}
+{% block content %}
+<section class="account-panel" aria-labelledby="page-title">
+  <p class="eyebrow">Staff workspace</p>
+  <h1 class="page-title" id="page-title">Welcome, {{ user.name }}.</h1>
+  <p class="intro">Manage your vehicles, daily rates, and operational status.</p>
+  <p><a class="button" href="/staff/fleet">Manage fleet</a></p>
+  <dl class="account-details">
+    <dt>Username</dt><dd>{{ user.username }}</dd>
+    <dt>Account type</dt><dd>{{ user.role | capitalize }}</dd>
+  </dl>
+  <p class="field-hint">For your security, your session ends 15 minutes after sign-in.</p>
+  <a href="/">Back to home</a>
+</section>
+{% endblock %}

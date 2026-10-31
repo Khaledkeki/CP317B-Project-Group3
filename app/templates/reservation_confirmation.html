@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Reservation confirmed | Car Rental System{% endblock %}
+{% block content %}
+<section class="account-panel" aria-labelledby="page-title">
+  <p class="eyebrow">{{ booking.status | capitalize }}</p><h1 class="page-title" id="page-title">Reservation confirmed</h1>
+  <p class="intro">Your car is reserved. Your reference is <strong>{{ booking.reference }}</strong>.</p>
+  <dl class="account-details">
+    <dt>Vehicle</dt><dd>{{ booking.vehicle_name }}</dd><dt>Branch</dt><dd>{{ booking.branch }}</dd>
+    <dt>Pickup</dt><dd>{{ booking.pickup | replace('T', ' ') }}</dd><dt>Return</dt><dd>{{ booking.return_time | replace('T', ' ') }}</dd>
+    <dt>Daily rate</dt><dd>${{ format_money(booking.daily_rate_cents) }}</dd><dt>Charged days</dt><dd>{{ booking.charged_days }}</dd>
+    <dt>Estimated total</dt><dd><strong>${{ format_money(booking.total_cents) }}</strong></dd><dt>Status</dt><dd>{{ booking.status | capitalize }}</dd>
+  </dl>
+  <p class="field-hint">Times use the server&rsquo;s local time. No payment was collected.</p>
+  <div class="vehicle-actions"><a class="button" href="/account">My reservations</a><a href="/search">Find another car</a></div>
+</section>
+{% endblock %}

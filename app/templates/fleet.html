@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Fleet inventory | Car Rental System{% endblock %}
+{% block content %}
+<section class="fleet-panel" aria-labelledby="page-title">
+  <a class="back-link" href="/staff">Back to staff workspace</a>
+  <div class="section-header">
+    <div><p class="eyebrow">Staff workspace</p><h1 class="page-title" id="page-title">Fleet inventory</h1></div>
+    <a class="button" href="/staff/vehicles/new">Add vehicle</a>
+  </div>
+  <p class="intro">Keep your vehicles, daily rates, and operational status up to date.</p>
+  {% if request.query_params.get('saved') == '1' %}<p class="message success" role="status">Vehicle saved.</p>{% endif %}
+  {% if request.query_params.get('removed') == '1' %}<p class="message success" role="status">Vehicle removed from the active fleet. Its record has been retained.</p>{% endif %}
+  {% if request.query_params.get('restored') == '1' %}<p class="message success" role="status">Vehicle restored to the fleet with its previous operational status.</p>{% endif %}
+  {% if errors.get('form') %}<p class="message error" role="alert">{{ errors.form }} <a href="/staff/fleet?status=removed">Reload removed vehicles</a></p>{% endif %}
+  <form class="fleet-filters" method="get" action="/staff/fleet">
+    <div class="form-field">
+      <label for="branch">Branch</label>
+      <select id="branch" name="branch"><option value="">All branches</option>
+        {% if branch and branch not in branches %}<option value="{{ branch }}" selected>{{ branch }}</option>{% endif %}
+        {% for option in branches %}<option value="{{ option }}" {% if branch | lower == option | lower %}selected{% endif %}>{{ option }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-field">
+      <label for="status">Status</label>
+      <select id="status" name="status"><option value="">All active fleet statuses</option>
+        {% for key, label in choices.status.items() %}<option value="{{ key }}" {% if status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        <option value="removed" {% if status == 'removed' %}selected{% endif %}>Removed vehicles</option>
+      </select>
+    </div>
+    <button class="button" type="submit">Apply filters</button><a href="/staff/fleet">Clear filters</a>
+  </form>
+  <p class="field-hint">{{ vehicles | length }} vehicle{{ '' if vehicles | length == 1 else 's' }} shown.</p>
+  {% if vehicles %}
+  <div class="vehicle-grid">
+    {% for vehicle in vehicles %}
+    <article class="vehicle-card" aria-labelledby="vehicle-{{ vehicle.id }}">
+      <div class="vehicle-heading"><span class="eyebrow">{{ vehicle.fleet_code }}</span><span class="status-badge">{{ 'Removed' if vehicle.retired_at else choices.status[vehicle.status] }}</span></div>
+      <h2 id="vehicle-{{ vehicle.id }}">{{ vehicle.name }}</h2>
+      <p class="vehicle-rate">${{ vehicle.daily_rate }} <span>per day</span></p>
+      <dl class="vehicle-details">
+        <dt>Branch</dt><dd>{{ vehicle.branch }}</dd>
+        <dt>Type</dt><dd>{{ choices.vehicle_type[vehicle.vehicle_type] }}</dd>
+        <dt>Category</dt><dd>{{ choices.category[vehicle.category] }}</dd>
+        <dt>Seats</dt><dd>{{ vehicle.seats }}</dd>
+        <dt>Transmission</dt><dd>{{ choices.transmission[vehicle.transmission] }}</dd>
+        <dt>Fuel</dt><dd>{{ choices.fuel_type[vehicle.fuel_type] }}</dd>
+      </dl>
+      {% if not vehicle.retired_at %}<div class="vehicle-actions">
+        <a class="button secondary" href="/staff/vehicles/{{ vehicle.id }}/edit" aria-label="Edit {{ vehicle.name }} ({{ vehicle.fleet_code }})">Edit details</a>
+        <a class="danger-link" href="/staff/vehicles/{{ vehicle.id }}/remove" aria-label="Remove {{ vehicle.name }} ({{ vehicle.fleet_code }})">Remove</a>
+      </div>{% else %}
+      <p class="field-hint">Previous status: {{ choices.status[vehicle.status] }} &middot; Removed on {{ vehicle.retired_at }} UTC</p>
+      <form class="vehicle-actions" method="post" action="/staff/vehicles/{{ vehicle.id }}/restore">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="version" value="{{ vehicle.version }}">
+        <button class="button secondary" type="submit" aria-label="Restore {{ vehicle.name }} ({{ vehicle.fleet_code }})">Restore vehicle</button>
+      </form>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><h2>No vehicles to show</h2><p>{% if branch or status %}Try changing your filters.{% else %}Add your first vehicle to start building the fleet.{% endif %}</p></div>
+  {% endif %}
+</section>
+{% endblock %}

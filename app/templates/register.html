@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "form_fields.html" import field with context %}
+{% block title %}Create account | Car Rental System{% endblock %}
+{% block content %}
+<section class="auth-panel" aria-labelledby="page-title">
+  <p class="eyebrow">Welcome aboard</p>
+  <h1 class="page-title" id="page-title">Create your account</h1>
+  <p class="intro">Set up your customer account for your next journey.</p>
+  {% if errors %}<div class="message error" role="alert">{{ errors.get('form', 'Please correct the fields below and try again.') }}</div>{% endif %}
+  <form method="post" action="/register" class="account-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {{ field('name', 'Full name', autocomplete='name', maxlength=100) }}
+    {{ field('email', 'Email', type='email', autocomplete='email', maxlength=254) }}
+    {{ field('username', 'Username', autocomplete='username', hint='3-30 letters, numbers, or underscores.', minlength=3, maxlength=30) }}
+    {{ field('password', 'Password', type='password', autocomplete='new-password', hint='At least 8 characters. Maximum 72 UTF-8 bytes; accented characters and emoji may use more than one byte.', minlength=8, maxlength=72) }}
+    <button class="button" type="submit">Create account</button>
+  </form>
+  <p class="form-footer">Already have an account? <a href="/login">Sign in</a></p>
+</section>
+{% endblock %}

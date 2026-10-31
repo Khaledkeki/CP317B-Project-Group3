@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Remove vehicle | Car Rental System{% endblock %}
+{% block content %}
+<section class="account-panel" aria-labelledby="page-title">
+  <a class="back-link" href="/staff/fleet">Back to fleet inventory</a>
+  <p class="eyebrow">Review removal</p>
+  <h1 class="page-title" id="page-title">Remove this vehicle?</h1>
+  {% if errors %}<p class="message error" role="alert">{{ errors.form }} <a href="/staff/vehicles/{{ vehicle.id }}/remove">Reload vehicle details</a></p>{% endif %}
+  <dl class="account-details"><dt>Vehicle</dt><dd>{{ vehicle.name }} &middot; {{ vehicle.fleet_code }}</dd><dt>Branch</dt><dd>{{ vehicle.branch }}</dd><dt>Daily rate</dt><dd>${{ vehicle.daily_rate }}</dd></dl>
+  <p>This removes the vehicle from the active fleet. Its record stays available for historical references. This screen does not cancel any bookings.</p>
+  <form class="vehicle-actions" method="post" action="/staff/vehicles/{{ vehicle.id }}/remove">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="version" value="{{ vehicle.version }}">
+    <button class="button danger" type="submit">Remove from fleet</button><a href="/staff/fleet">Keep vehicle</a>
+  </form>
+</section>
+{% endblock %}

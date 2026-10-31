@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "form_fields.html" import field with context %}
+{% block title %}Sign in | Car Rental System{% endblock %}
+{% block content %}
+<section class="auth-panel" aria-labelledby="page-title">
+  <p class="eyebrow">Welcome back</p>
+  <h1 class="page-title" id="page-title">Sign in</h1>
+  <p class="intro">Use your username or email to access your account.</p>
+  {% if request.query_params.get('registered') == '1' %}<p class="message success" role="status">Account created. You can sign in now.</p>{% endif %}
+  {% if request.query_params.get('logged_out') == '1' %}<p class="message success" role="status">You have signed out.</p>{% endif %}
+  {% if request.query_params.get('expired') == '1' %}<p class="message" role="status">Please sign in to continue. Your session may have expired.</p>{% endif %}
+  {% if errors %}<p class="message error" role="alert">{{ errors['form'] }}</p>{% endif %}
+  <form method="post" action="/login" class="account-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if next_path %}<input type="hidden" name="next" value="{{ next_path }}">{% endif %}
+    {{ field('identifier', 'Username or email', autocomplete='username', maxlength=254) }}
+    {{ field('password', 'Password', type='password', autocomplete='current-password', maxlength=72) }}
+    <button class="button" type="submit">Sign in</button>
+  </form>
+  <p class="form-footer">New here? <a href="/register">Create an account</a></p>
+</section>
+{% endblock %}

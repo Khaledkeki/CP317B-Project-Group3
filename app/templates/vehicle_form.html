@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "form_fields.html" import field, select with context %}
+{% block title %}{{ 'Edit vehicle' if vehicle else 'Add vehicle' }} | Car Rental System{% endblock %}
+{% block content %}
+<section class="vehicle-form-panel" aria-labelledby="page-title">
+  <a class="back-link" href="/staff/fleet">Back to fleet inventory</a>
+  <p class="eyebrow">Staff workspace</p>
+  <h1 class="page-title" id="page-title">{{ 'Edit vehicle' if vehicle else 'Add a vehicle' }}</h1>
+  <p class="intro">All fields are required. Rates are charged per day.</p>
+  {% if errors %}<div class="message error" role="alert">{{ errors.get('form', 'Please correct the fields below and try again.') }}
+    {% if errors.get('form') and vehicle %}<a href="/staff/vehicles/{{ vehicle.id }}/edit">Reload saved details</a>{% endif %}
+  </div>{% endif %}
+  <form class="account-form" method="post" action="{{ '/staff/vehicles/' ~ vehicle.id ~ '/edit' if vehicle else '/staff/vehicles/new' }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if vehicle %}<input type="hidden" name="version" value="{{ values.get('version', vehicle.version) }}">{% endif %}
+    <div class="form-grid">
+      {{ field('fleet_code', 'Fleet ID', hint='A unique ID for this car, such as CAR-001.', minlength=2, maxlength=30) }}
+      {{ field('name', 'Vehicle name', hint='Make and model, such as Toyota Corolla.', maxlength=100) }}
+      {{ field('branch', 'Branch', maxlength=80) }}
+      {{ field('daily_rate', 'Daily rate ($)', type='number', min='0.01', max='9999.99', step='0.01') }}
+      {{ select('vehicle_type', 'Vehicle type', choices.vehicle_type) }}
+      {{ select('category', 'Category', choices.category) }}
+      {{ field('seats', 'Seats', type='number', min=1, max=15, step=1) }}
+      {{ select('transmission', 'Transmission', choices.transmission) }}
+      {{ select('fuel_type', 'Fuel type', choices.fuel_type) }}
+      {{ select('status', 'Operational status', choices.status) }}
+    </div>
+    <div class="vehicle-actions"><button class="button" type="submit">{{ 'Save changes' if vehicle else 'Add vehicle' }}</button><a href="/staff/fleet">Cancel</a></div>
+  </form>
+</section>
+{% endblock %}

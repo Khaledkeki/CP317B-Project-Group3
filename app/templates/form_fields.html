@@ -1,0 +1,29 @@
+{% macro field(name, label, type='text', autocomplete='', hint='', minlength='', maxlength='', min='', max='', step='') %}
+<div class="form-field">
+  <label for="{{ name }}">{{ label }}</label>
+  {% if hint %}<p id="{{ name }}-hint" class="field-hint">{{ hint }}</p>{% endif %}
+  <input id="{{ name }}" name="{{ name }}" type="{{ type }}" required
+    autocomplete="{{ autocomplete }}"
+    {% if type != 'password' %}value="{{ values.get(name, '') }}"{% endif %}
+    {% if minlength %}minlength="{{ minlength }}"{% endif %}
+    {% if maxlength %}maxlength="{{ maxlength }}"{% endif %}
+    {% if min != '' %}min="{{ min }}"{% endif %}
+    {% if max != '' %}max="{{ max }}"{% endif %}
+    {% if step != '' %}step="{{ step }}"{% endif %}
+    {% if errors.get(name) %}aria-invalid="true"{% endif %}
+    {% if hint or errors.get(name) %}aria-describedby="{% if hint %}{{ name }}-hint {% endif %}{% if errors.get(name) %}{{ name }}-error{% endif %}"{% endif %}>
+  {% if errors.get(name) %}<p class="field-error" id="{{ name }}-error">{{ errors[name] }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro select(name, label, options) %}
+<div class="form-field">
+  <label for="{{ name }}">{{ label }}</label>
+  <select id="{{ name }}" name="{{ name }}" required
+    {% if errors.get(name) %}aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}>
+    <option value="">Choose an option</option>
+    {% for value, text in options.items() %}<option value="{{ value }}" {% if values.get(name) == value %}selected{% endif %}>{{ text }}</option>{% endfor %}
+  </select>
+  {% if errors.get(name) %}<p class="field-error" id="{{ name }}-error">{{ errors[name] }}</p>{% endif %}
+</div>
+{% endmacro %}

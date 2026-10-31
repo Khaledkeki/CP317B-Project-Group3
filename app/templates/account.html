@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}My account | Car Rental System{% endblock %}
+{% block content %}
+<section class="account-panel" aria-labelledby="page-title">
+  <p class="eyebrow">Customer account</p>
+  <h1 class="page-title" id="page-title">Welcome, {{ user.name }}.</h1>
+  <p class="intro">Find a car for your next trip and review your reservations.</p>
+  <p><a class="button" href="/search">Find a car</a></p>
+  <dl class="account-details">
+    <dt>Username</dt><dd>{{ user.username }}</dd>
+    <dt>Email</dt><dd>{{ user.email }}</dd>
+    <dt>Account type</dt><dd>Customer</dd>
+  </dl>
+  <h2>My reservations</h2>
+  {% if reservations %}<div class="reservation-list">
+    {% for booking in reservations %}<article class="reservation-summary">
+      <h3>{{ booking.vehicle_name }}</h3>
+      <p>{{ booking.branch }} &middot; {{ booking.pickup | replace('T', ' ') }} to {{ booking.return_time | replace('T', ' ') }}</p>
+      <p>Status: {{ booking.status | capitalize }} &middot; ${{ format_money(booking.total_cents) }} &middot; {{ booking.reference }}</p>
+      <a href="/reservations/{{ booking.reference }}">View reservation</a>
+    </article>{% endfor %}
+  </div>{% else %}<p>You don&rsquo;t have any reservations yet.</p>{% endif %}
+  <p class="field-hint">For your security, your session ends 15 minutes after sign-in.</p>
+  <a href="/">Back to home</a>
+</section>
+{% endblock %}

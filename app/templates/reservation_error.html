@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Reservation unavailable | Car Rental System{% endblock %}
+{% block content %}
+<section class="account-panel" aria-labelledby="page-title">
+  <h1 class="page-title" id="page-title">Unable to reserve this car</h1>
+  <p class="message error" role="alert">{{ message }}</p>
+  <a class="button" href="/search?{{ search_query }}">Back to results</a>
+</section>
+{% endblock %}

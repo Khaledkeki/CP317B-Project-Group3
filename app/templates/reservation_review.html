@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Review reservation | Car Rental System{% endblock %}
+{% block content %}
+<section class="account-panel" aria-labelledby="page-title">
+  <a class="back-link" href="/search?{{ search_query }}">Back to results</a>
+  <p class="eyebrow">Almost there</p><h1 class="page-title" id="page-title">Review your reservation</h1>
+  <p class="intro">Check the details before confirming your car.</p>
+  <dl class="account-details">
+    <dt>Vehicle</dt><dd>{{ quote.name }}</dd><dt>Branch</dt><dd>{{ quote.branch }}</dd>
+    <dt>Pickup</dt><dd>{{ quote.pickup | replace('T', ' ') }}</dd><dt>Return</dt><dd>{{ quote.return_time | replace('T', ' ') }}</dd>
+    <dt>Daily rate</dt><dd>${{ quote.rate }}</dd><dt>Charged days</dt><dd>{{ quote.days }}</dd>
+    <dt>Estimated total</dt><dd><strong>${{ quote.total }}</strong></dd>
+  </dl>
+  <p class="field-hint">Each started 24-hour period counts as one day. Times use the server&rsquo;s local time. No payment is collected in this prototype.</p>
+  {% if not user %}
+    <p>Sign in to confirm this reservation.</p><a class="button" href="/login?next={{ review_url | urlencode }}">Sign in to continue</a>
+  {% elif user.role != 'customer' %}
+    <p>To reserve a car, sign in with a customer account.</p>
+  {% else %}
+  <form method="post" action="/reservations/confirm" class="vehicle-actions">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="vehicle_id" value="{{ quote.vehicle_id }}">
+    <input type="hidden" name="branch" value="{{ quote.branch }}"><input type="hidden" name="pickup" value="{{ quote.pickup }}">
+    <input type="hidden" name="return_time" value="{{ quote.return_time }}"><input type="hidden" name="version" value="{{ quote.version }}">
+    <input type="hidden" name="request_key" value="{{ request_key }}"><input type="hidden" name="search_params" value="{{ search_query }}">
+    <button class="button" type="submit">Confirm reservation</button><a href="/search?{{ search_query }}">Back to results</a>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

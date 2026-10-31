@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="hero" aria-labelledby="welcome-heading">
+    <p class="eyebrow">A simpler rental experience</p>
+    <h1 id="welcome-heading">Your next journey<br>starts here.</h1>
+    <p class="intro">Find a car that fits your plans, compare your options, and keep your next trip simple.</p>
+    <p><a class="button" href="/search">Find a car</a></p>
+    <p class="notice"><span class="notice-dot" aria-hidden="true"></span>Search and reserve online.</p>
+  </section>
+  <section class="features" aria-labelledby="features-heading">
+    <h2 id="features-heading">Plan your trip</h2>
+    <div class="feature-grid">
+      <article class="feature-card">
+        <span class="feature-number" aria-hidden="true">01</span>
+        <h3>Find your fit</h3>
+        <p>Choose your branch and travel dates, then compare vehicles by price and specifications.</p>
+      </article>
+      <article class="feature-card">
+        <span class="feature-number" aria-hidden="true">02</span>
+        <h3>Plan with clarity</h3>
+        <p>Review your selected car, rental dates, and estimated cost before making a reservation.</p>
+      </article>
+      <article class="feature-card">
+        <span class="feature-number" aria-hidden="true">03</span>
+        <h3>Reserve with confidence</h3>
+        <p>Receive a booking reference once your reservation is confirmed.</p>
+      </article>
+    </div>
+  </section>
+{% endblock %}
