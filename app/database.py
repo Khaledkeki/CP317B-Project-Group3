@@ -81,6 +81,9 @@ def initialize_database(database_path: Path = DATABASE_PATH) -> None:
             CREATE INDEX IF NOT EXISTS reservations_daily
                 ON reservations(branch, pickup);
         """)
+        # Serialize the check-and-alter so two workers starting on an older
+        # database cannot both try to add the same column.
+        connection.execute("BEGIN IMMEDIATE")
         columns = {row["name"] for row in connection.execute("PRAGMA table_info(reservations)")}
         if "returned_at" not in columns:
             connection.execute("ALTER TABLE reservations ADD COLUMN returned_at TEXT")

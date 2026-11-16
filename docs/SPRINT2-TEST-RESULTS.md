@@ -31,7 +31,9 @@ table, and every availability and reporting query filters `status = 'confirmed'`
 
 Fresh databases get the column from `CREATE TABLE`. Existing databases are
 migrated on startup by checking `PRAGMA table_info(reservations)` and running a
-single `ALTER TABLE ... ADD COLUMN`. No rows or indexes are dropped.
+single `ALTER TABLE ... ADD COLUMN`. The check and the change run inside
+`BEGIN IMMEDIATE`, so several workers starting against the same older database
+add the column exactly once. No rows or indexes are dropped.
 
 Two indexes were added: `reservations_customer(user_id, pickup)` and
 `reservations_daily(branch, pickup)`.
@@ -40,8 +42,8 @@ Two indexes were added: `reservations_customer(user_id, pickup)` and
 
 Command: `.venv/bin/python -m unittest discover -s tests`
 
-Result: **89 tests passed** (15 authentication, 17 fleet, 9 search,
-12 reservations, 11 Sprint 2 pages, 25 Sprint 2 backend).
+Result: **90 tests passed** (15 authentication, 17 fleet, 9 search,
+12 reservations, 11 Sprint 2 pages, 26 Sprint 2 backend).
 
 The new backend suite covers:
 
@@ -73,6 +75,7 @@ The new backend suite covers:
 | A returned booking shows as completed with no cancel link | Pass |
 | The cancel page refuses a returned booking with a clear message | Pass |
 | A legacy database gains `returned_at` with existing rows intact; migration is idempotent | Pass |
+| Eight concurrent initialisations of one legacy database add the column exactly once, with no errors | Pass |
 
 The existing authentication, fleet, search, reservation, and Sprint 2 page
 checks still pass. `tests/test_sprint2_frontend.py` no longer references the
@@ -89,6 +92,12 @@ A seeded local instance was exercised end to end at
   returned, with the recorded return persisting across a server restart.
 - The utilization report ranked 10 rentals by model and by category with no
   customer names.
+- A legacy database upgraded in place matches a freshly created one
+  column-for-column, passes `PRAGMA integrity_check`, reports no foreign-key
+  violations, and keeps both original and new indexes.
+- Twenty separate processes upgrading the same legacy database, repeated three
+  times, completed with zero failures; 25 repeated migrations on the same file
+  were no-ops.
 - A database created by the shipped `b1e6726` schema was migrated in place: all
   14 original columns and the original availability index survived, and
   `returned_at` was added.

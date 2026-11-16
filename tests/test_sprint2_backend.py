@@ -398,6 +398,33 @@ class Sprint2BackendTests(unittest.TestCase):
         self.assertEqual(errors, {})
         self.assertNotIn(self.car.id, [vehicle.id for vehicle in vehicles])
 
+    def test_concurrent_initialisation_upgrades_a_legacy_database_once(self):
+        legacy = Path(self.temp.name) / "concurrent.db"
+        connection = sqlite3.connect(legacy)
+        connection.executescript(LEGACY_SCHEMA)
+        connection.commit()
+        connection.close()
+
+        errors = []
+        barrier = threading.Barrier(8)
+
+        def upgrade():
+            barrier.wait(timeout=10)
+            try:
+                initialize_database(legacy)
+            except Exception as error:  # noqa: BLE001 - surface any failure mode
+                errors.append(f"{type(error).__name__}: {error}")
+
+        threads = [threading.Thread(target=upgrade) for _ in range(8)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(20)
+        self.assertEqual(errors, [])
+        with get_connection(legacy) as connection:
+            columns = [row["name"] for row in connection.execute("PRAGMA table_info(reservations)")]
+        self.assertEqual(columns.count("returned_at"), 1)
+
     # ---- migration ---------------------------------------------------------------
     def test_legacy_database_gains_the_column_without_data_loss(self):
         legacy = Path(self.temp.name) / "legacy.db"
