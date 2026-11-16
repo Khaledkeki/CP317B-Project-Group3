@@ -52,7 +52,7 @@ With the server running:
 3. Open <http://127.0.0.1:8000/docs> for the API documentation.
 4. Confirm `data/car_rental.db` was created locally when the server started.
 
-The server creates `users`, `sessions`, and `vehicles` tables on startup without deleting existing data. Registration always creates a customer; there is no public staff-role selector. Sign-out revokes the session in SQLite as well as clearing the cookie. Forms include CSRF protection; private responses use `Cache-Control: no-store`.
+The server creates the `users`, `sessions`, `vehicles`, and `reservations` tables on startup without deleting existing data, and adds the `returned_at` column to an older `reservations` table in place. Registration always creates a customer; there is no public staff-role selector. Sign-out revokes the session in SQLite as well as clearing the cookie. Forms include CSRF protection; private responses use `Cache-Control: no-store`.
 
 ## Try registration and login
 

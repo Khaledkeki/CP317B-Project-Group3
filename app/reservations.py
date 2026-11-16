@@ -106,11 +106,6 @@ def get_reservation(database: Path, user_id: int, reference: str):
         return connection.execute("SELECT * FROM reservations WHERE user_id = ? AND reference = ?", (user_id, reference)).fetchone()
 
 
-def list_reservations(database: Path, user_id: int):
-    with get_connection(database) as connection:
-        return connection.execute("SELECT * FROM reservations WHERE user_id = ? ORDER BY pickup DESC, id DESC", (user_id,)).fetchall()
-
-
 def now_minute() -> str:
     return datetime.now().strftime("%Y-%m-%dT%H:%M")
 
