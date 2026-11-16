@@ -88,6 +88,9 @@ A seeded local instance was exercised end to end at
 - A database created by the shipped `b1e6726` schema was migrated in place: all
   14 original columns and the original availability index survived, and
   `returned_at` was added.
+- Six separate processes racing on the same database: exactly one cancel
+  succeeded and five were refused; exactly one return succeeded and five were
+  refused. No `database is locked` errors.
 - An eight-process startup probe found a pre-existing race in
   `load_signing_key`: a process could read `session.key` before the creator had
   written it and fail with "The local session signing key is invalid". Key
