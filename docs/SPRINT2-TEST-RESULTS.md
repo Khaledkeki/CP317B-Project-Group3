@@ -136,3 +136,40 @@ Screenshots: `docs/screenshots/sprint2/`.
 - A booking returned early still holds its original dates, so the car cannot be
   re-rented for the unused part of that window. This is deliberate: releasing
   dates automatically could double-book a car whose key was handed back early.
+
+## Verification of the pushed artifact
+
+The checks above ran in the working copy. To confirm the branch that was actually
+pushed (PR #2, head `3f65c3b`), a fresh clone was made from
+`origin/sprint2-backend` into an empty directory and verified independently.
+
+Environment and packaging:
+
+- `python -m venv` then `pip install -r requirements.txt` alone is enough to import
+  the application; `requirements-dev.txt` adds only the test client.
+- The clone tracked no `data/`, `.venv/`, `__pycache__`, database, or key files.
+- With no `data/` directory present, the first start created the database and both
+  new indexes.
+- `python -m app.dev_seed` populated the demo fleet, and the legacy upgrade path
+  added `returned_at` to an old-schema database using the shipped code.
+
+Functional checks against the running clone (two workers, then one after restart):
+
+| Requirement | Check on the pushed branch | Result |
+| --- | --- | --- |
+| UI-03 | Account shows current, upcoming, past, and cancelled groups; completed rentals show a return time | Pass |
+| UI-03 | A returned rental is still reported as completed after a process restart | Pass |
+| UI-04 | A booked car is absent from search for its dates before cancellation | Pass |
+| UI-04 | Cancelling redirects with a confirmation message and the booking moves to cancelled | Pass |
+| UI-04 | The same car reappears in search for those dates after cancellation | Pass |
+| ADMIN-02 | Daily page renders for a branch; customer access is refused | Pass |
+| ADMIN-02 | Recording a return succeeds and the booking moves to the returned group | Pass |
+| ADMIN-02 | The recorded return and its timestamp survive a restart | Pass |
+| REP-01 | Report renders for a manager, by model and by category; customer access is 403 | Pass |
+| REP-01 | Invalid period and unknown grouping are rejected with 400; no customer names appear | Pass |
+| AUTH-01 to UI-02 | Home, search, receipt, `/api/me`, and `/api/staff/access` behave as before | Pass |
+| Migration | Old-schema database upgraded in place with its row intact | Pass |
+| Suite | `python -m unittest discover -s tests` from the clone: 90 tests | Pass |
+
+All 90 tests and all release checks passed from the fresh clone of the pushed
+branch, so the verified behaviour matches what the pull request contains.
