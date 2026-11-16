@@ -128,6 +128,42 @@ class Sprint2BackendTests(unittest.TestCase):
                 "SELECT returned_at FROM reservations WHERE reference = ?", (future,)).fetchone()["returned_at"])
 
     # ---- cancellation ------------------------------------------------------------
+    def test_cancel_and_rebook_never_leave_two_confirmed_bookings(self):
+        pickup, return_time = at(72), at(96)
+        reference = self.book(self.customer, self.car, pickup, return_time)
+        barrier = threading.Barrier(2)
+        outcomes = {}
+
+        def cancel():
+            barrier.wait(timeout=10)
+            try:
+                reservations.cancel_reservation(self.database, self.customer.id, reference)
+                outcomes["cancel"] = "ok"
+            except reservations.CancellationError:
+                outcomes["cancel"] = "refused"
+
+        def rebook():
+            barrier.wait(timeout=10)
+            try:
+                reservations.create_reservation(self.database, self.other.id, self.car.id, "Waterloo",
+                                                pickup, return_time, str(self.car.version),
+                                                secrets.token_urlsafe(32))
+                outcomes["book"] = "ok"
+            except reservations.ReservationError:
+                outcomes["book"] = "refused"
+
+        threads = [threading.Thread(target=cancel), threading.Thread(target=rebook)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(15)
+        self.assertEqual(outcomes["cancel"], "ok")
+        with get_connection(self.database) as connection:
+            overlapping = connection.execute(
+                "SELECT COUNT(*) FROM reservations WHERE vehicle_id = ? AND status = 'confirmed' "
+                "AND pickup < ? AND return_time > ?", (self.car.id, return_time, pickup)).fetchone()[0]
+        self.assertLessEqual(overlapping, 1)
+
     def test_cancelled_dates_can_be_booked_again(self):
         reference = self.book(self.customer, self.car, at(72), at(96))
         reservations.cancel_reservation(self.database, self.customer.id, reference)

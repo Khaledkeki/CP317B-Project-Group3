@@ -40,8 +40,8 @@ Two indexes were added: `reservations_customer(user_id, pickup)` and
 
 Command: `.venv/bin/python -m unittest discover -s tests`
 
-Result: **88 tests passed** (15 authentication, 17 fleet, 9 search,
-12 reservations, 11 Sprint 2 pages, 24 Sprint 2 backend).
+Result: **89 tests passed** (15 authentication, 17 fleet, 9 search,
+12 reservations, 11 Sprint 2 pages, 25 Sprint 2 backend).
 
 The new backend suite covers:
 
@@ -68,6 +68,7 @@ The new backend suite covers:
 | A vehicle name containing HTML is escaped on the account, daily, and report pages | Pass |
 | A form post carrying a foreign `Origin` header is rejected with 403 and changes nothing | Pass |
 | A booking returned early keeps holding its original dates (documented, conservative) | Pass |
+| Cancelling while another customer rebooks the same dates never leaves two confirmed overlapping bookings | Pass |
 | Model, vehicle-type, and category grouping agree; period boundaries are inclusive | Pass |
 | A returned booking shows as completed with no cancel link | Pass |
 | The cancel page refuses a returned booking with a clear message | Pass |
@@ -91,6 +92,9 @@ A seeded local instance was exercised end to end at
 - A database created by the shipped `b1e6726` schema was migrated in place: all
   14 original columns and the original availability index survived, and
   `returned_at` was added.
+- A four-worker `uvicorn` deployment served 8 health checks and 40 authenticated
+  account requests without a single failure, and a session created by one worker
+  was accepted by the others (shared key and shared session table).
 - Six separate processes racing on the same database: exactly one cancel
   succeeded and five were refused; exactly one return succeeded and five were
   refused. No `database is locked` errors.
