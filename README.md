@@ -8,9 +8,9 @@ The prototype provides customer registration and sign-in, staff fleet management
 
 ## Stack
 
-- Python 3.12 (the version used to verify this setup)
+- Python 3.11 or newer (3.11.9 and 3.12 both used to verify this setup)
 - FastAPI and Uvicorn for the backend/server
-- Jinja2 HTML templates and plain CSS; JavaScript will be added where interactions require it
+- Jinja2 HTML templates and plain CSS, with a small script for live search filtering
 - SQLite through Python's built-in `sqlite3` module
 
 No Node.js installation, external database account, or API key is needed.
@@ -49,7 +49,7 @@ With the server running:
 
 1. Open <http://127.0.0.1:8000> and check that the home page loads with styling.
 2. Open <http://127.0.0.1:8000/health>. Expected JSON: `{"status":"ok","database":"connected"}`. This endpoint runs a SQLite query.
-3. Open <http://127.0.0.1:8000/docs> for the API documentation.
+3. Open <http://127.0.0.1:8000/docs> for the documented JSON endpoints. Most screens are server-rendered HTML and do not appear in the schema.
 4. Confirm `data/car_rental.db` was created locally when the server started.
 
 The server creates the `users`, `sessions`, `vehicles`, and `reservations` tables on startup without deleting existing data, and adds the `returned_at` column to an older `reservations` table in place. Registration always creates a customer; there is no public staff-role selector. Sign-out revokes the session in SQLite as well as clearing the cookie. Forms include CSRF protection; private responses use `Cache-Control: no-store`.
@@ -101,7 +101,19 @@ Search and booking use local server time; timezone conversion and daylight-savin
 - Sign in as staff and open **Daily rentals**, or visit [http://127.0.0.1:8000/staff/daily](http://127.0.0.1:8000/staff/daily). Pick a branch and date to see pickups, cars on rent, returns due, and returns already recorded. Choose **Record return** when a car comes back.
 - Sign in as a manager and open **Utilization report**, or visit [http://127.0.0.1:8000/manager/reports/utilization](http://127.0.0.1:8000/manager/reports/utilization). Confirmed bookings are ranked by rental count for a branch and period, grouped by model, vehicle type, or category. Reports never show customer details.
 
-## Create a staff account locally
+## Load optional demo data
+
+Every Sprint 2 page needs bookings to show anything useful. From the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m app.dev_seed
+```
+
+On macOS/Linux use `.venv/bin/python` instead. This adds fictitious accounts, eight vehicles, and thirteen bookings to your local database. Sign in with `demo_customer`, `demo_customer2`, `demo_staff`, or `demo_manager`; the password is `demo-pass-123`.
+
+The command refuses to run twice and never touches a database that already has the demo fleet. It is local demo data only: do not run it against a shared or real database.
+
+## Create a staff or manager account locally
 
 From a separate terminal in the repository root:
 
@@ -146,14 +158,12 @@ app/
   database.py            # SQLite connections, schema, and column migration
   models.py              # Public user and vehicle models
   dev_seed.py            # Optional local demo data for every Sprint 2 page
-  templates/
-    base.html            # Shared HTML layout
-    index.html           # Initial home page
-  static/
+  templates/             # Jinja2 pages for each screen
+  static/                # CSS and the search filter script
     css/styles.css       # Responsive styles
 data/                    # Local database, signing key, credentials; excluded from Git
-tests/                   # Authentication and fleet integration checks
-docs/                    # Technical verification record
+tests/                   # Authentication, fleet, search, reservation, and Sprint 2 checks
+docs/                    # Technical verification records and Sprint 2 screenshots
 requirements.txt         # Pinned Python dependencies
 requirements-dev.txt     # Additional test dependencies
 .gitignore
