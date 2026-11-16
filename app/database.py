@@ -70,9 +70,17 @@ def initialize_database(database_path: Path = DATABASE_PATH) -> None:
                 charged_days INTEGER NOT NULL CHECK (charged_days > 0),
                 total_cents INTEGER NOT NULL CHECK (total_cents > 0),
                 status TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'cancelled')),
+                returned_at TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 CHECK (pickup < return_time)
             );
             CREATE INDEX IF NOT EXISTS reservations_availability
                 ON reservations(vehicle_id, status, pickup, return_time);
+            CREATE INDEX IF NOT EXISTS reservations_customer
+                ON reservations(user_id, pickup);
+            CREATE INDEX IF NOT EXISTS reservations_daily
+                ON reservations(branch, pickup);
         """)
+        columns = {row["name"] for row in connection.execute("PRAGMA table_info(reservations)")}
+        if "returned_at" not in columns:
+            connection.execute("ALTER TABLE reservations ADD COLUMN returned_at TEXT")

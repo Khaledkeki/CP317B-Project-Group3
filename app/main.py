@@ -22,7 +22,7 @@ def create_app(database_path: Path = DATABASE_PATH, signing_key: str | None = No
         application.state.signing_key = signing_key or load_signing_key(database_path.parent)
         yield
 
-    application = FastAPI(title="Car Rental System", version="0.3.0", lifespan=lifespan)
+    application = FastAPI(title="Car Rental System", version="0.4.0", lifespan=lifespan)
     application.state.database_path = database_path
     application.mount("/static", StaticFiles(directory=PROJECT_DIR / "app" / "static"), name="static")
     application.include_router(router)

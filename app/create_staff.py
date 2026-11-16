@@ -1,5 +1,6 @@
-"""Run python -m app.create_staff to provision one staff account locally."""
+"""Run python -m app.create_staff [--role manager] to provision one local account."""
 
+import argparse
 from getpass import getpass
 
 from app.auth import RegistrationError, register_user
@@ -7,12 +8,15 @@ from app.database import DATABASE_PATH, get_connection, initialize_database
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Create one local prototype account.")
+    parser.add_argument("--role", choices=("staff", "manager"), default="staff")
+    args = parser.parse_args()
     initialize_database()
     with get_connection() as connection:
-        if connection.execute("SELECT 1 FROM users WHERE role = 'staff'").fetchone():
-            print("A staff account already exists. No changes made.")
+        if connection.execute("SELECT 1 FROM users WHERE role = ?", (args.role,)).fetchone():
+            print(f"A {args.role} account already exists. No changes made.")
             return
-    print("Create the local prototype's staff account. No default password is provided.")
+    print(f"Create the local prototype's {args.role} account. No default password is provided.")
     name = input("Full name: ")
     email = input("Email: ")
     username = input("Username: ")
@@ -20,10 +24,10 @@ def main():
     if password != getpass("Confirm password: "):
         raise SystemExit("Passwords do not match. No account created.")
     try:
-        register_user(DATABASE_PATH, name, email, username, password, role="staff")
+        register_user(DATABASE_PATH, name, email, username, password, role=args.role)
     except RegistrationError as error:
         raise SystemExit(" ".join(error.errors.values())) from None
-    print("Staff account created. Sign in through the website.")
+    print(f"{args.role.capitalize()} account created. Sign in through the website.")
 
 
 if __name__ == "__main__":

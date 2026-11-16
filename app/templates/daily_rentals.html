@@ -76,7 +76,7 @@
     <li class="stat-tile"><span class="stat-value">{{ activity.returns | length }}</span><span class="stat-label">Returns due</span></li>
     <li class="stat-tile"><span class="stat-value">{{ activity.returned | length }}</span><span class="stat-label">Returned</span></li>
   </ul>
-  {{ activity_table('pickups', 'Pickups', activity.pickups, 'No pickups scheduled for this day.') }}
+  {{ activity_table('pickups', 'Pickups', activity.pickups, 'No pickups scheduled for this day.', show_return=true) }}
   {{ activity_table('active', 'On rent', activity.active, 'No other vehicles are on rent this day.', show_return=true) }}
   {{ activity_table('returns', 'Returns due', activity.returns, 'No returns due this day.', show_return=true) }}
   {{ activity_table('returned', 'Returned', activity.returned, 'No returns recorded yet.') }}
