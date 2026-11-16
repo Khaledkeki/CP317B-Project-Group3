@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Vehicle utilization | Car Rental System{% endblock %}
+{% block content %}
+<section class="fleet-panel" aria-labelledby="page-title">
+  <a class="back-link" href="/staff">Back to staff workspace</a>
+  <p class="eyebrow">Manager reports</p>
+  <h1 class="page-title" id="page-title">Vehicle utilization</h1>
+  <p class="intro">See which vehicles and categories customers rent most, to guide fleet planning.</p>
+
+  <form class="fleet-filters" method="get" action="/manager/reports/utilization">
+    <div class="form-field">
+      <label for="branch">Branch</label>
+      <select id="branch" name="branch" {% if errors.get('branch') %}aria-invalid="true" aria-describedby="branch-error"{% endif %}>
+        <option value="">All branches</option>
+        {% for option in branches %}<option value="{{ option }}" {% if branch | lower == option | lower %}selected{% endif %}>{{ option }}</option>{% endfor %}
+      </select>
+      {% if errors.get('branch') %}<p class="field-error" id="branch-error">{{ errors.branch }}</p>{% endif %}
+    </div>
+    <div class="form-field">
+      <label for="start">From</label>
+      <input id="start" name="start" type="date" value="{{ start }}" required {% if errors.get('start') %}aria-invalid="true" aria-describedby="start-error"{% endif %}>
+      {% if errors.get('start') %}<p class="field-error" id="start-error">{{ errors.start }}</p>{% endif %}
+    </div>
+    <div class="form-field">
+      <label for="end">To</label>
+      <input id="end" name="end" type="date" value="{{ end }}" required {% if errors.get('end') %}aria-invalid="true" aria-describedby="end-error"{% endif %}>
+      {% if errors.get('end') %}<p class="field-error" id="end-error">{{ errors.end }}</p>{% endif %}
+    </div>
+    <div class="form-field">
+      <label for="group_by">Group by</label>
+      <select id="group_by" name="group_by" {% if errors.get('group_by') %}aria-invalid="true" aria-describedby="group_by-error"{% endif %}>
+        {% for key, label in groups.items() %}<option value="{{ key }}" {% if group_by == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      {% if errors.get('group_by') %}<p class="field-error" id="group_by-error">{{ errors.group_by }}</p>{% endif %}
+    </div>
+    <button class="button" type="submit">Run report</button>
+  </form>
+
+  {% if errors %}
+  <p class="message error" role="alert">Please correct the highlighted fields and run the report again.</p>
+  {% else %}
+  <p class="day-heading">{{ branch or 'All branches' }} &middot; {{ start }} to {{ end }} &middot; by {{ groups[group_by] | lower }}</p>
+  {% if rows %}
+  <ul class="stat-row" aria-label="Report summary">
+    <li class="stat-tile"><span class="stat-value">{{ total }}</span><span class="stat-label">Rentals</span></li>
+    <li class="stat-tile"><span class="stat-value">{{ total_days }}</span><span class="stat-label">Rental days</span></li>
+    <li class="stat-tile"><span class="stat-value stat-text">{{ rows[0].display }}</span><span class="stat-label">Most rented</span></li>
+  </ul>
+  <div class="table-wrap">
+    <table class="data-table report-table">
+      <caption class="visually-hidden">Rentals by {{ groups[group_by] | lower }}, most rented first</caption>
+      <thead><tr><th scope="col">{{ groups[group_by] }}</th><th scope="col" class="num">Rentals</th><th scope="col" class="num">Rental days</th><th scope="col">Share of rentals</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <th scope="row" data-label="{{ groups[group_by] }}">{{ row.display }}</th>
+          <td class="num" data-label="Rentals">{{ row.rentals }}</td>
+          <td class="num" data-label="Rental days">{{ row.rental_days }}</td>
+          <td data-label="Share"><div class="share"><span class="share-bar" style="width: {{ (row.rentals * 100 / max_rentals) | round(1) }}%" aria-hidden="true"></span><span class="share-text">{{ row.share }}%</span></div></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="field-hint">Counts confirmed bookings whose pickup falls in the selected period. Cancelled bookings are excluded. Reports never show customer details.</p>
+  {% else %}
+  <div class="empty-state"><h2>No rentals in this period</h2><p>Try a longer period or a different branch.</p></div>
+  {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

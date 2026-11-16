@@ -2,10 +2,14 @@
 {% block title %}Staff account | Car Rental System{% endblock %}
 {% block content %}
 <section class="account-panel" aria-labelledby="page-title">
-  <p class="eyebrow">Staff workspace</p>
+  <p class="eyebrow">{{ 'Manager' if user.role == 'manager' else 'Staff' }} workspace</p>
   <h1 class="page-title" id="page-title">Welcome, {{ user.name }}.</h1>
-  <p class="intro">Manage your vehicles, daily rates, and operational status.</p>
-  <p><a class="button" href="/staff/fleet">Manage fleet</a></p>
+  <p class="intro">Manage your vehicles, follow today&rsquo;s rentals{% if user.role == 'manager' %}, and review fleet reports{% endif %}.</p>
+  <div class="workspace-grid">
+    <a class="workspace-card" href="/staff/daily"><span class="feature-number" aria-hidden="true">01</span><h2>Daily rentals</h2><p>Pickups, cars on rent, and returns for a branch and day.</p></a>
+    <a class="workspace-card" href="/staff/fleet"><span class="feature-number" aria-hidden="true">02</span><h2>Manage fleet</h2><p>Add, edit, remove, and restore vehicles and rates.</p></a>
+    {% if user.role == 'manager' %}<a class="workspace-card" href="/manager/reports/utilization"><span class="feature-number" aria-hidden="true">03</span><h2>Utilization report</h2><p>Most-rented vehicles and categories by branch and period.</p></a>{% endif %}
+  </div>
   <dl class="account-details">
     <dt>Username</dt><dd>{{ user.username }}</dd>
     <dt>Account type</dt><dd>{{ user.role | capitalize }}</dd>

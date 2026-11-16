@@ -1,16 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Reservation confirmed | Car Rental System{% endblock %}
+{% block title %}Reservation {{ booking.reference }} | Car Rental System{% endblock %}
 {% block content %}
+{% set headings = {'upcoming': 'Reservation confirmed', 'current': 'Rental in progress', 'past': 'Rental completed', 'cancelled': 'Reservation cancelled'} %}
+{% set labels = {'upcoming': 'Upcoming', 'current': 'On rent now', 'past': 'Completed', 'cancelled': 'Cancelled'} %}
 <section class="account-panel" aria-labelledby="page-title">
-  <p class="eyebrow">{{ booking.status | capitalize }}</p><h1 class="page-title" id="page-title">Reservation confirmed</h1>
-  <p class="intro">Your car is reserved. Your reference is <strong>{{ booking.reference }}</strong>.</p>
+  <a class="back-link" href="/account#{{ info.phase }}">Back to my rentals</a>
+  <p class="eyebrow"><span class="phase-badge phase-{{ info.phase }}">{{ labels[info.phase] }}</span></p>
+  <h1 class="page-title" id="page-title">{{ headings[info.phase] }}</h1>
+  <p class="intro">{% if info.phase == 'upcoming' %}Your car is reserved. {% endif %}Your reference is <strong>{{ booking.reference }}</strong>.</p>
   <dl class="account-details">
     <dt>Vehicle</dt><dd>{{ booking.vehicle_name }}</dd><dt>Branch</dt><dd>{{ booking.branch }}</dd>
     <dt>Pickup</dt><dd>{{ booking.pickup | replace('T', ' ') }}</dd><dt>Return</dt><dd>{{ booking.return_time | replace('T', ' ') }}</dd>
+    {% if info.returned_at %}<dt>Returned</dt><dd>{{ info.returned_at | replace('T', ' ') }}</dd>{% endif %}
     <dt>Daily rate</dt><dd>${{ format_money(booking.daily_rate_cents) }}</dd><dt>Charged days</dt><dd>{{ booking.charged_days }}</dd>
-    <dt>Estimated total</dt><dd><strong>${{ format_money(booking.total_cents) }}</strong></dd><dt>Status</dt><dd>{{ booking.status | capitalize }}</dd>
+    <dt>Estimated total</dt><dd><strong>${{ format_money(booking.total_cents) }}</strong></dd><dt>Status</dt><dd>{{ labels[info.phase] }}</dd>
   </dl>
   <p class="field-hint">Times use the server&rsquo;s local time. No payment was collected.</p>
-  <div class="vehicle-actions"><a class="button" href="/account">My reservations</a><a href="/search">Find another car</a></div>
+  <div class="vehicle-actions">
+    <a class="button" href="/account">My rentals</a>
+    {% if info.can_cancel %}<a class="danger-link" href="/reservations/{{ booking.reference }}/cancel">Cancel reservation</a>{% endif %}
+    <a href="/search">Find another car</a>
+  </div>
 </section>
 {% endblock %}

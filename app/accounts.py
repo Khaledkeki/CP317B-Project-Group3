@@ -11,7 +11,8 @@ from fastapi.templating import Jinja2Templates
 from app import auth
 from app.database import PROJECT_DIR
 from app.models import User
-from app.reservations import list_reservations, money
+from app.reservations import money
+from app.sprint2_placeholders import rental_history
 
 router = APIRouter()
 templates = Jinja2Templates(directory=PROJECT_DIR / "app" / "templates")
@@ -127,7 +128,7 @@ def account(request: Request):
     if user.role in {"staff", "manager"}:
         return RedirectResponse("/staff", status_code=303)
     return page(request, "account.html", user=user,
-                reservations=list_reservations(request.app.state.database_path, user.id), format_money=money)
+                history=rental_history(request.app.state.database_path, user.id), format_money=money)
 
 
 @router.get("/staff", include_in_schema=False)

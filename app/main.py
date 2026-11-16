@@ -11,6 +11,7 @@ from app.auth import load_signing_key
 from app.fleet_routes import router as fleet_router
 from app.search_routes import router as search_router
 from app.reservation_routes import router as reservation_router
+from app.sprint2_routes import router as sprint2_router
 from app.database import DATABASE_PATH, PROJECT_DIR, get_connection, initialize_database
 
 
@@ -27,6 +28,7 @@ def create_app(database_path: Path = DATABASE_PATH, signing_key: str | None = No
     application.include_router(router)
     application.include_router(fleet_router)
     application.include_router(search_router)
+    application.include_router(sprint2_router)  # before reservation_router so /reservations/{ref}/cancel matches first
     application.include_router(reservation_router)
 
     @application.middleware("http")
