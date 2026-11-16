@@ -1,6 +1,8 @@
 # Sprint 2 backend plan
 
-Status: plan only. No application code has been changed.
+Status: implemented on branch `sprint2-backend`; see
+`docs/SPRINT2-TEST-RESULTS.md` for the verification record. This document is
+retained as the design rationale behind the change.
 Baseline: `b1e6726` (merge of `sprint2-frontend`), 63 tests passing
 (14 auth, 17 fleet, 9 search, 12 reservations, 11 sprint-2 pages).
 
