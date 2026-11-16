@@ -40,8 +40,8 @@ Two indexes were added: `reservations_customer(user_id, pickup)` and
 
 Command: `.venv/bin/python -m unittest discover -s tests`
 
-Result: **81 tests passed** (14 authentication, 17 fleet, 9 search,
-12 reservations, 11 Sprint 2 pages, 18 Sprint 2 backend).
+Result: **85 tests passed** (15 authentication, 17 fleet, 9 search,
+12 reservations, 11 Sprint 2 pages, 21 Sprint 2 backend).
 
 The new backend suite covers:
 
@@ -61,12 +61,16 @@ The new backend suite covers:
 | A late return is listed on the day it was recorded, not the missed scheduled day | Pass |
 | The return endpoint rejects a customer session and writes nothing | Pass |
 | An unknown report grouping is rejected before reaching SQL; customers get 403 | Pass |
+| The return endpoint rejects a wrong CSRF token and writes nothing | Pass |
+| Lifecycle boundaries are inclusive: pickup at the minute is current, return at the minute is past, and the comparison holds across a year rollover | Pass |
+| Reports include retired vehicles and match the branch case-insensitively | Pass |
+| The report period allows 366 days and rejects 367 | Pass |
 | Model, vehicle-type, and category grouping agree; period boundaries are inclusive | Pass |
 | A returned booking shows as completed with no cancel link | Pass |
 | The cancel page refuses a returned booking with a clear message | Pass |
 | A legacy database gains `returned_at` with existing rows intact; migration is idempotent | Pass |
 
-The existing 63 authentication, fleet, search, reservation, and Sprint 2 page
+The existing authentication, fleet, search, reservation, and Sprint 2 page
 checks still pass. `tests/test_sprint2_frontend.py` no longer references the
 removed placeholder module.
 
@@ -84,6 +88,12 @@ A seeded local instance was exercised end to end at
 - A database created by the shipped `b1e6726` schema was migrated in place: all
   14 original columns and the original availability index survived, and
   `returned_at` was added.
+- An eight-process startup probe found a pre-existing race in
+  `load_signing_key`: a process could read `session.key` before the creator had
+  written it and fail with "The local session signing key is invalid". Key
+  creation now writes a private candidate file and links it into place, so the
+  target never exists half-written. The same probe passes 8/8 after the change,
+  and a regression test covers concurrent creation.
 
 Screenshots: `docs/screenshots/sprint2/`.
 

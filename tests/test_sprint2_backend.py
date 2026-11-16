@@ -271,6 +271,12 @@ class Sprint2BackendTests(unittest.TestCase):
         with get_connection(self.database) as connection:
             self.assertIsNone(connection.execute(
                 "SELECT returned_at FROM reservations WHERE reference = ?", (reference,)).fetchone()["returned_at"])
+        self.as_user(self.staff)
+        wrong_csrf = self.client.post("/staff/daily/return", data={"csrf_token": "wrong", "reference": reference})
+        self.assertEqual(wrong_csrf.status_code, 403)
+        with get_connection(self.database) as connection:
+            self.assertIsNone(connection.execute(
+                "SELECT returned_at FROM reservations WHERE reference = ?", (reference,)).fetchone()["returned_at"])
 
     def test_report_rejects_an_unknown_grouping(self):
         self.as_user(self.manager)
@@ -279,6 +285,42 @@ class Sprint2BackendTests(unittest.TestCase):
         self.assertIn("Choose how to group the report.", response.text)
         self.as_user(self.customer)
         self.assertEqual(self.client.get("/manager/reports/utilization").status_code, 403)
+
+    # ---- lifecycle boundaries ----------------------------------------------------
+    def test_phase_boundaries_are_inclusive_at_the_edges(self):
+        now = "2026-11-15T12:00"
+
+        def row(**changes):
+            base = {"status": "confirmed", "returned_at": None,
+                    "pickup": "2026-11-15T12:00", "return_time": "2026-11-16T12:00"}
+            return {**base, **changes}
+
+        self.assertEqual(reservations.phase(row(), now), "current")
+        self.assertEqual(reservations.phase(row(pickup="2026-11-15T12:01"), now), "upcoming")
+        self.assertEqual(reservations.phase(row(return_time="2026-11-15T12:00"), now), "past")
+        self.assertEqual(reservations.phase(row(return_time="2026-11-15T12:01"), now), "current")
+        self.assertEqual(reservations.phase(row(status="cancelled"), now), "cancelled")
+        self.assertEqual(reservations.phase(row(returned_at="2026-11-15T11:00"), now), "past")
+        self.assertEqual(reservations.phase(
+            row(pickup="2026-12-31T23:59", return_time="2027-01-01T00:00"), "2027-01-01T00:00"), "past")
+
+    # ---- reporting boundaries ----------------------------------------------------
+    def test_report_includes_retired_vehicles_and_ignores_branch_case(self):
+        self.book(self.customer, self.car, at(-100), at(-80))
+        fleet.retire_vehicle(self.database, self.car.id, str(self.car.version))
+        today = date.today()
+        rows = reports.utilization_report(self.database, "waterloo", today - timedelta(days=10), today, "model")
+        self.assertEqual([(row["label"], row["rentals"]) for row in rows], [("Toyota Corolla", 1)])
+
+    def test_report_period_limit_is_enforced_at_366_days(self):
+        self.as_user(self.manager)
+        at_limit = self.client.get("/manager/reports/utilization",
+                                   params={"start": "2025-01-01", "end": "2026-01-02"})
+        self.assertEqual(at_limit.status_code, 200)
+        over_limit = self.client.get("/manager/reports/utilization",
+                                     params={"start": "2025-01-01", "end": "2026-01-03"})
+        self.assertEqual(over_limit.status_code, 400)
+        self.assertIn("one year or less", over_limit.text)
 
     # ---- migration ---------------------------------------------------------------
     def test_legacy_database_gains_the_column_without_data_loss(self):
