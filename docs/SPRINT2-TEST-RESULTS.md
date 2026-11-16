@@ -92,6 +92,10 @@ A seeded local instance was exercised end to end at
 - A database created by the shipped `b1e6726` schema was migrated in place: all
   14 original columns and the original availability index survived, and
   `returned_at` was added.
+- A 14-step headless Chrome acceptance run against an isolated database passed
+  end to end: search, select a car, review the quote, confirm, find it under
+  upcoming, cancel it, staff records the return, and the manager report reflects
+  the rental without exposing customer identity.
 - A four-worker `uvicorn` deployment served 8 health checks and 40 authenticated
   account requests without a single failure, and a session created by one worker
   was accepted by the others (shared key and shared session table).
