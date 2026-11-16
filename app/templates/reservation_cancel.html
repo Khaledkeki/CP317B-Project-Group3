@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Cancel reservation | Car Rental System{% endblock %}
+{% block content %}
+<section class="account-panel" aria-labelledby="page-title">
+  <a class="back-link" href="/account#upcoming">Back to my rentals</a>
+  <p class="eyebrow">Reference {{ booking.reference }}</p>
+  {% if info.can_cancel %}
+  <h1 class="page-title" id="page-title">Cancel this reservation?</h1>
+  <p class="intro">Check the booking below. Once cancelled, the car is released for other customers and this can&rsquo;t be undone.</p>
+  {% else %}
+  <h1 class="page-title" id="page-title">This reservation can&rsquo;t be cancelled</h1>
+  {% endif %}
+  {% if errors.get('form') %}<p class="message error" role="alert">{{ errors.form }}</p>
+  {% elif not info.can_cancel %}<p class="message error" role="alert">
+    {% if info.phase == 'cancelled' %}This reservation is already cancelled.
+    {% elif info.phase == 'current' %}This rental has already started, so it can no longer be cancelled online.
+    {% else %}This rental has already ended.{% endif %}</p>{% endif %}
+  <dl class="account-details">
+    <dt>Vehicle</dt><dd>{{ booking.vehicle_name }}</dd><dt>Branch</dt><dd>{{ booking.branch }}</dd>
+    <dt>Pickup</dt><dd>{{ booking.pickup | replace('T', ' ') }}</dd><dt>Return</dt><dd>{{ booking.return_time | replace('T', ' ') }}</dd>
+    <dt>Estimated total</dt><dd>${{ format_money(booking.total_cents) }}</dd><dt>Status</dt><dd>{{ booking.status | capitalize }}</dd>
+  </dl>
+  {% if info.can_cancel %}
+  <p class="field-hint">No payment was collected for this booking, so there is nothing to refund.</p>
+  <form class="vehicle-actions" method="post" action="/reservations/{{ booking.reference }}/cancel">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="button danger" type="submit">Cancel reservation</button>
+    <a href="/account#upcoming">Keep reservation</a>
+  </form>
+  {% else %}
+  <div class="vehicle-actions"><a class="button" href="/account">Back to my rentals</a></div>
+  {% endif %}
+</section>
+{% endblock %}

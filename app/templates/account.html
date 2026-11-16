@@ -1,25 +1,63 @@
 {% extends "base.html" %}
 {% block title %}My account | Car Rental System{% endblock %}
+{% macro booking_card(booking) %}
+{% set phase_labels = {'current': 'On rent now', 'upcoming': 'Upcoming', 'past': 'Completed', 'cancelled': 'Cancelled'} %}
+<article class="booking-card phase-{{ booking.phase }}" aria-labelledby="booking-{{ booking.reference }}">
+  <div class="booking-card-head">
+    <h4 id="booking-{{ booking.reference }}">{{ booking.vehicle_name }}</h4>
+    <span class="phase-badge phase-{{ booking.phase }}">{{ phase_labels[booking.phase] }}</span>
+  </div>
+  <dl class="booking-meta">
+    <div><dt>Branch</dt><dd>{{ booking.branch }}</dd></div>
+    <div><dt>Pickup</dt><dd>{{ booking.pickup | replace('T', ' ') }}</dd></div>
+    <div><dt>Return</dt><dd>{{ booking.return_time | replace('T', ' ') }}</dd></div>
+    <div><dt>Total</dt><dd>${{ format_money(booking.total_cents) }}</dd></div>
+  </dl>
+  {% if booking.returned_at %}<p class="field-hint">Returned {{ booking.returned_at | replace('T', ' ') }}</p>{% endif %}
+  <div class="booking-actions">
+    <span class="booking-ref">Ref {{ booking.reference }}</span>
+    <a href="/reservations/{{ booking.reference }}" aria-label="View details for {{ booking.vehicle_name }}, reference {{ booking.reference }}">View details</a>
+    {% if booking.can_cancel %}<a class="danger-link" href="/reservations/{{ booking.reference }}/cancel" aria-label="Cancel reservation {{ booking.reference }}">Cancel</a>{% endif %}
+  </div>
+</article>
+{% endmacro %}
 {% block content %}
-<section class="account-panel" aria-labelledby="page-title">
+{% set phase_labels = {'current': 'On rent now', 'upcoming': 'Upcoming', 'past': 'Completed', 'cancelled': 'Cancelled'} %}
+{% set sections = [('current', 'Current rentals', 'No cars on rent right now.'),
+                   ('upcoming', 'Upcoming reservations', 'No upcoming reservations. Find a car for your next trip.'),
+                   ('past', 'Past rentals', 'Completed rentals will appear here.'),
+                   ('cancelled', 'Cancelled', 'No cancelled reservations.')] %}
+<section class="account-panel history-panel" aria-labelledby="page-title">
   <p class="eyebrow">Customer account</p>
   <h1 class="page-title" id="page-title">Welcome, {{ user.name }}.</h1>
-  <p class="intro">Find a car for your next trip and review your reservations.</p>
+  <p class="intro">Find a car for your next trip and keep track of every rental.</p>
+  {% set cancelled_ref = request.query_params.get('cancelled') %}
+  {% if cancelled_ref %}<p class="message success" role="status">Reservation {{ cancelled_ref }} was cancelled. Those dates are open for other customers again.</p>{% endif %}
   <p><a class="button" href="/search">Find a car</a></p>
+
+  <h2 id="history-heading">My rentals</h2>
+  {% set total = history.current | length + history.upcoming | length + history.past | length + history.cancelled | length %}
+  {% if total == 0 %}
+  <div class="empty-state"><h3>No rentals yet</h3><p>Your current, upcoming, and past rentals will appear here once you book a car.</p><a class="button secondary" href="/search">Find a car</a></div>
+  {% else %}
+  <nav class="history-tabs" aria-label="Rental history sections">
+    {% for key, title, _ in sections %}<a href="#{{ key }}">{{ title }} <span class="count">{{ history[key] | length }}</span></a>{% endfor %}
+  </nav>
+  {% for key, title, empty in sections %}
+  <section class="history-section" id="{{ key }}" aria-labelledby="{{ key }}-heading">
+    <h3 id="{{ key }}-heading">{{ title }} <span class="count">{{ history[key] | length }}</span></h3>
+    {% if history[key] %}<div class="booking-list">{% for booking in history[key] %}{{ booking_card(booking) }}{% endfor %}</div>
+    {% else %}<p class="history-empty">{{ empty }}</p>{% endif %}
+  </section>
+  {% endfor %}
+  {% endif %}
+
+  <h2>Account details</h2>
   <dl class="account-details">
     <dt>Username</dt><dd>{{ user.username }}</dd>
     <dt>Email</dt><dd>{{ user.email }}</dd>
     <dt>Account type</dt><dd>Customer</dd>
   </dl>
-  <h2>My reservations</h2>
-  {% if reservations %}<div class="reservation-list">
-    {% for booking in reservations %}<article class="reservation-summary">
-      <h3>{{ booking.vehicle_name }}</h3>
-      <p>{{ booking.branch }} &middot; {{ booking.pickup | replace('T', ' ') }} to {{ booking.return_time | replace('T', ' ') }}</p>
-      <p>Status: {{ booking.status | capitalize }} &middot; ${{ format_money(booking.total_cents) }} &middot; {{ booking.reference }}</p>
-      <a href="/reservations/{{ booking.reference }}">View reservation</a>
-    </article>{% endfor %}
-  </div>{% else %}<p>You don&rsquo;t have any reservations yet.</p>{% endif %}
   <p class="field-hint">For your security, your session ends 15 minutes after sign-in.</p>
   <a href="/">Back to home</a>
 </section>

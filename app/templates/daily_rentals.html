@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Daily rentals | Car Rental System{% endblock %}
+{% macro activity_table(key, title, items, empty, show_return=false) %}
+<section class="activity-section" id="{{ key }}" aria-labelledby="{{ key }}-heading">
+  <h2 id="{{ key }}-heading">{{ title }} <span class="count">{{ items | length }}</span></h2>
+  {% if items %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th scope="col">Reference</th><th scope="col">Vehicle</th><th scope="col">Customer</th>
+        <th scope="col">Pickup</th><th scope="col">Return</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+      <tbody>
+      {% for item in items %}
+        <tr>
+          <td data-label="Reference">{{ item.reference }}</td>
+          <td data-label="Vehicle">{{ item.vehicle_name }}</td>
+          <td data-label="Customer">{{ item.customer_name }}</td>
+          <td data-label="Pickup">{{ item.pickup | replace('T', ' ') }}</td>
+          <td data-label="Return">{% if item.returned_at %}Returned {{ item.returned_at | replace('T', ' ') }}{% else %}{{ item.return_time | replace('T', ' ') }}{% endif %}</td>
+          <td class="table-action">{% if show_return %}
+            <form method="post" action="/staff/daily/return">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <input type="hidden" name="reference" value="{{ item.reference }}">
+              <input type="hidden" name="branch" value="{{ branch }}">
+              <input type="hidden" name="day" value="{{ day.isoformat() }}">
+              <button class="button secondary small" type="submit" aria-label="Record return for {{ item.vehicle_name }}, reference {{ item.reference }}">Record return</button>
+            </form>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="history-empty">{{ empty }}</p>{% endif %}
+</section>
+{% endmacro %}
+{% block content %}
+<section class="fleet-panel" aria-labelledby="page-title">
+  <a class="back-link" href="/staff">Back to staff workspace</a>
+  <p class="eyebrow">Staff workspace</p>
+  <h1 class="page-title" id="page-title">Daily rentals</h1>
+  <p class="intro">See what&rsquo;s going out, what&rsquo;s on the road, and what&rsquo;s coming back at your branch.</p>
+  {% set returned_ref = request.query_params.get('returned') %}
+  {% set return_error = request.query_params.get('error') %}
+  {% if returned_ref %}<p class="message success" role="status">Return recorded for {{ returned_ref }}.</p>{% endif %}
+  {% if return_error %}<p class="message error" role="alert">{{ return_error }}</p>{% endif %}
+
+  {% if not branches %}
+  <div class="empty-state"><h2>No branches yet</h2><p>Add vehicles to the fleet to start monitoring rentals.</p><a class="button secondary" href="/staff/fleet">Manage fleet</a></div>
+  {% else %}
+  <form class="fleet-filters" method="get" action="/staff/daily">
+    <div class="form-field">
+      <label for="branch">Branch</label>
+      <select id="branch" name="branch" {% if errors.get('branch') %}aria-invalid="true" aria-describedby="branch-error"{% endif %}>
+        {% for option in branches %}<option value="{{ option }}" {% if branch | lower == option | lower %}selected{% endif %}>{{ option }}</option>{% endfor %}
+      </select>
+      {% if errors.get('branch') %}<p class="field-error" id="branch-error">{{ errors.branch }}</p>{% endif %}
+    </div>
+    <div class="form-field">
+      <label for="day">Date</label>
+      <input id="day" name="day" type="date" value="{{ day_text }}" required {% if errors.get('day') %}aria-invalid="true" aria-describedby="day-error"{% endif %}>
+      {% if errors.get('day') %}<p class="field-error" id="day-error">{{ errors.day }}</p>{% endif %}
+    </div>
+    <button class="button" type="submit">Show day</button>
+  </form>
+  <nav class="day-nav" aria-label="Change day">
+    <a href="/staff/daily?branch={{ branch | urlencode }}&amp;day={{ previous_day }}">&larr; Previous day</a>
+    <a href="/staff/daily?branch={{ branch | urlencode }}">Today</a>
+    <a href="/staff/daily?branch={{ branch | urlencode }}&amp;day={{ next_day }}">Next day &rarr;</a>
+  </nav>
+
+  {% if not errors %}
+  <h2 class="visually-hidden">Summary for {{ branch }} on {{ day.strftime('%A, %B %d, %Y') }}</h2>
+  <p class="day-heading">{{ branch }} &middot; {{ day.strftime('%A, %B %d, %Y') }}</p>
+  <ul class="stat-row" aria-label="Day summary">
+    <li class="stat-tile"><span class="stat-value">{{ activity.pickups | length }}</span><span class="stat-label">Pickups</span></li>
+    <li class="stat-tile"><span class="stat-value">{{ activity.active | length }}</span><span class="stat-label">On rent</span></li>
+    <li class="stat-tile"><span class="stat-value">{{ activity.returns | length }}</span><span class="stat-label">Returns due</span></li>
+    <li class="stat-tile"><span class="stat-value">{{ activity.returned | length }}</span><span class="stat-label">Returned</span></li>
+  </ul>
+  {{ activity_table('pickups', 'Pickups', activity.pickups, 'No pickups scheduled for this day.') }}
+  {{ activity_table('active', 'On rent', activity.active, 'No other vehicles are on rent this day.', show_return=true) }}
+  {{ activity_table('returns', 'Returns due', activity.returns, 'No returns due this day.', show_return=true) }}
+  {{ activity_table('returned', 'Returned', activity.returned, 'No returns recorded yet.') }}
+  {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

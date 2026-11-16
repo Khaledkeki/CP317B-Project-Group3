@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 from app.accounts import optional_user, page, verify_csrf
 from app.reservations import ReservationError, create_reservation, get_quote, get_reservation, money
 from app.search import FILTERS
+from app.sprint2_placeholders import booking_phase
 
 router = APIRouter(prefix="/reservations")
 
@@ -57,4 +58,4 @@ def confirmation(request: Request, reference: str = Path(max_length=30)):
     booking = get_reservation(request.app.state.database_path, user.id, reference)
     if booking is None:
         raise HTTPException(status_code=404, detail="Reservation not found.")
-    return page(request, "reservation_confirmation.html", booking=booking, format_money=money)
+    return page(request, "reservation_confirmation.html", booking=booking, info=booking_phase(booking), format_money=money)

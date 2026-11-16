@@ -16,8 +16,9 @@
     <nav class="account-nav" aria-label="Account">
       <a href="/search">Find a car</a>
       {% if user %}
-        {% if user.role in ['staff', 'manager'] %}<a href="/staff/fleet">Fleet</a>{% endif %}
-        <a href="{{ '/staff' if user.role in ['staff', 'manager'] else '/account' }}">My account</a>
+        {% if user.role in ['staff', 'manager'] %}<a href="/staff/daily">Daily rentals</a><a href="/staff/fleet">Fleet</a>{% endif %}
+        {% if user.role == 'manager' %}<a href="/manager/reports/utilization">Reports</a>{% endif %}
+        <a href="{{ '/staff' if user.role in ['staff', 'manager'] else '/account' }}">{{ 'Workspace' if user.role in ['staff', 'manager'] else 'My rentals' }}</a>
         <form method="post" action="/logout">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <button class="button secondary" type="submit">Sign out</button>
