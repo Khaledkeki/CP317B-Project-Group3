@@ -40,8 +40,8 @@ Two indexes were added: `reservations_customer(user_id, pickup)` and
 
 Command: `.venv/bin/python -m unittest discover -s tests`
 
-Result: **77 tests passed** (14 authentication, 17 fleet, 9 search,
-12 reservations, 11 Sprint 2 pages, 14 Sprint 2 backend).
+Result: **81 tests passed** (14 authentication, 17 fleet, 9 search,
+12 reservations, 11 Sprint 2 pages, 18 Sprint 2 backend).
 
 The new backend suite covers:
 
@@ -57,6 +57,10 @@ The new backend suite covers:
 | An early return does not reappear on its scheduled return day | Pass |
 | A returned booking never appears as on rent | Pass |
 | The report excludes cancelled bookings and includes returned ones | Pass |
+| Daily activity returns only bookings from the requested branch | Pass |
+| A late return is listed on the day it was recorded, not the missed scheduled day | Pass |
+| The return endpoint rejects a customer session and writes nothing | Pass |
+| An unknown report grouping is rejected before reaching SQL; customers get 403 | Pass |
 | Model, vehicle-type, and category grouping agree; period boundaries are inclusive | Pass |
 | A returned booking shows as completed with no cancel link | Pass |
 | The cancel page refuses a returned booking with a clear message | Pass |
@@ -77,6 +81,9 @@ A seeded local instance was exercised end to end at
   returned, with the recorded return persisting across a server restart.
 - The utilization report ranked 10 rentals by model and by category with no
   customer names.
+- A database created by the shipped `b1e6726` schema was migrated in place: all
+  14 original columns and the original availability index survived, and
+  `returned_at` was added.
 
 Screenshots: `docs/screenshots/sprint2/`.
 

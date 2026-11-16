@@ -243,6 +243,43 @@ class Sprint2BackendTests(unittest.TestCase):
         response = self.client.post(f"/reservations/{reference}/cancel", data={"csrf_token": self.csrf(page.text)})
         self.assertEqual(response.status_code, 409)
 
+    def test_late_return_is_listed_on_the_day_it_was_recorded(self):
+        reference = self.book(self.customer, self.car, at(-72), at(-24))
+        before = {key for key, refs in self.groups_for(date.today()).items() if reference in refs}
+        self.assertNotIn("returned", before)
+        reservations.record_return(self.database, reference)
+        after = {key for key, refs in self.groups_for(date.today()).items() if reference in refs}
+        self.assertEqual(after, {"returned"})
+
+    def test_daily_activity_is_scoped_to_the_requested_branch(self):
+        kitchener = fleet.save_vehicle(self.database, {
+            "fleet_code": "CAR-003", "name": "Mazda 3", "branch": "Kitchener", "vehicle_type": "hatchback",
+            "category": "economy", "seats": "5", "transmission": "manual", "fuel_type": "gasoline",
+            "daily_rate": "40.00", "status": "available"})
+        other = self.book(self.other, kitchener, at(-30), at(40))
+        self.assertIn(other, self.groups_for(date.today(), "Kitchener")["active"])
+        self.assertEqual([], [ref for refs in self.groups_for(date.today(), "Waterloo").values()
+                              for ref in refs if ref == other])
+
+    def test_return_endpoint_is_staff_only(self):
+        reference = self.book(self.customer, self.car, at(-3), at(20))
+        self.as_user(self.customer)
+        page = self.client.get("/account").text
+        response = self.client.post("/staff/daily/return", data={"csrf_token": self.csrf(page),
+                                                                  "reference": reference})
+        self.assertEqual(response.status_code, 403)
+        with get_connection(self.database) as connection:
+            self.assertIsNone(connection.execute(
+                "SELECT returned_at FROM reservations WHERE reference = ?", (reference,)).fetchone()["returned_at"])
+
+    def test_report_rejects_an_unknown_grouping(self):
+        self.as_user(self.manager)
+        response = self.client.get("/manager/reports/utilization", params={"group_by": "drop table"})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Choose how to group the report.", response.text)
+        self.as_user(self.customer)
+        self.assertEqual(self.client.get("/manager/reports/utilization").status_code, 403)
+
     # ---- migration ---------------------------------------------------------------
     def test_legacy_database_gains_the_column_without_data_loss(self):
         legacy = Path(self.temp.name) / "legacy.db"
