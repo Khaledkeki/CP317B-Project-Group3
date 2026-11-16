@@ -1,7 +1,7 @@
 """Sprint 2 page checks: rental history (UI-03), cancellation (UI-04),
 daily rental monitoring (ADMIN-02), and the utilization report (REP-01).
 
-These test the pages against the placeholder data layer (app.sprint2_placeholders).
+These test the pages against the real data layer (app.reservations, app.reports).
 """
 
 from datetime import date, datetime, timedelta
@@ -12,7 +12,7 @@ import tempfile
 import unittest
 
 from fastapi.testclient import TestClient
-from app import auth, fleet, sprint2_placeholders
+from app import auth, fleet
 from app.database import get_connection
 from app.main import create_app
 
@@ -23,7 +23,6 @@ def at(hours: float) -> str:
 
 class Sprint2PageTests(unittest.TestCase):
     def setUp(self):
-        sprint2_placeholders._RETURNED.clear()
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.database = Path(self.temp.name) / "rentals.db"

@@ -11,8 +11,7 @@ from fastapi.templating import Jinja2Templates
 from app import auth
 from app.database import PROJECT_DIR
 from app.models import User
-from app.reservations import money
-from app.sprint2_placeholders import rental_history
+from app.reservations import money, rental_history
 
 router = APIRouter()
 templates = Jinja2Templates(directory=PROJECT_DIR / "app" / "templates")

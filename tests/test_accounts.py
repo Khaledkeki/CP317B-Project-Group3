@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import tempfile
+import threading
 import time
 import unittest
 
@@ -177,6 +178,25 @@ class AccountTests(unittest.TestCase):
             self.assertEqual(response.status_code, 303)
         first = auth.load_signing_key(Path(self.directory.name))
         self.assertEqual(first, auth.load_signing_key(Path(self.directory.name)))
+
+    def test_signing_key_file_is_created_atomically_and_shared(self):
+        directory = Path(self.directory.name) / "keys"
+        barrier = threading.Barrier(8)
+        results = []
+
+        def load():
+            barrier.wait(timeout=10)
+            results.append(auth.load_signing_key(directory))
+
+        threads = [threading.Thread(target=load) for _ in range(8)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(10)
+        self.assertEqual(len(results), 8)
+        self.assertEqual(len(set(results)), 1)
+        self.assertGreaterEqual(len(results[0]), 64)
+        self.assertEqual([path.name for path in directory.iterdir()], ["session.key"])
 
 
 if __name__ == "__main__":

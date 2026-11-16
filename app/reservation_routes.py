@@ -7,9 +7,9 @@ from fastapi import APIRouter, Form, HTTPException, Path, Query, Request
 from fastapi.responses import RedirectResponse
 
 from app.accounts import optional_user, page, verify_csrf
-from app.reservations import ReservationError, create_reservation, get_quote, get_reservation, money
+from app.reservations import (ReservationError, booking_phase, create_reservation, get_quote,
+                              get_reservation, money)
 from app.search import FILTERS
-from app.sprint2_placeholders import booking_phase
 
 router = APIRouter(prefix="/reservations")
 

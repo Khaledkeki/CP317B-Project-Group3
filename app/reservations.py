@@ -14,6 +14,14 @@ class ReservationError(ValueError):
     pass
 
 
+class CancellationError(ValueError):
+    """Raised with a customer-facing message when a booking cannot be cancelled."""
+
+
+class ReturnError(ValueError):
+    """Raised with a staff-facing message when a return cannot be recorded."""
+
+
 @dataclass(frozen=True)
 class Quote:
     vehicle_id: int
@@ -98,6 +106,75 @@ def get_reservation(database: Path, user_id: int, reference: str):
         return connection.execute("SELECT * FROM reservations WHERE user_id = ? AND reference = ?", (user_id, reference)).fetchone()
 
 
-def list_reservations(database: Path, user_id: int):
+def now_minute() -> str:
+    return datetime.now().strftime("%Y-%m-%dT%H:%M")
+
+
+def phase(row, now: str) -> str:
+    """Lifecycle group for one reservation row."""
+    if row["status"] == "cancelled":
+        return "cancelled"
+    if row["returned_at"] or row["return_time"] <= now:
+        return "past"
+    return "current" if row["pickup"] <= now else "upcoming"
+
+
+def booking_phase(booking) -> dict:
+    current = phase(booking, now_minute())
+    return {"phase": current, "can_cancel": current == "upcoming", "returned_at": booking["returned_at"]}
+
+
+def rental_history(database: Path, user_id: int) -> dict[str, list[dict]]:
+    """The customer's own bookings grouped into current, upcoming, past and cancelled."""
+    now = now_minute()
     with get_connection(database) as connection:
-        return connection.execute("SELECT * FROM reservations WHERE user_id = ? ORDER BY pickup DESC, id DESC", (user_id,)).fetchall()
+        rows = connection.execute("SELECT * FROM reservations WHERE user_id = ?", (user_id,)).fetchall()
+    groups: dict[str, list[dict]] = {"current": [], "upcoming": [], "past": [], "cancelled": []}
+    for row in rows:
+        current = phase(row, now)
+        groups[current].append({**dict(row), "phase": current, "can_cancel": current == "upcoming"})
+    groups["current"].sort(key=lambda item: item["return_time"])
+    groups["upcoming"].sort(key=lambda item: item["pickup"])
+    groups["past"].sort(key=lambda item: item["return_time"], reverse=True)
+    groups["cancelled"].sort(key=lambda item: item["pickup"], reverse=True)
+    return groups
+
+
+def cancel_reservation(database: Path, user_id: int, reference: str) -> None:
+    """Cancel one of the customer's own future bookings."""
+    now = now_minute()
+    with get_connection(database) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute("SELECT * FROM reservations WHERE user_id = ? AND reference = ?",
+                                 (user_id, reference)).fetchone()
+        if row is None:
+            raise CancellationError("We couldn't find that reservation on your account.")
+        if row["status"] == "cancelled":
+            raise CancellationError("This reservation is already cancelled.")
+        if row["returned_at"]:
+            raise CancellationError("This rental has already been returned.")
+        if row["pickup"] <= now:
+            raise CancellationError("This rental has already started, so it can no longer be cancelled online.")
+        updated = connection.execute(
+            "UPDATE reservations SET status = 'cancelled' "
+            "WHERE id = ? AND status = 'confirmed' AND returned_at IS NULL", (row["id"],))
+        if updated.rowcount != 1:
+            raise CancellationError("This reservation is already cancelled.")
+
+
+def record_return(database: Path, reference: str) -> None:
+    """Mark a confirmed booking's vehicle as returned now."""
+    now = now_minute()
+    with get_connection(database) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute("SELECT * FROM reservations WHERE reference = ?", (reference,)).fetchone()
+        if row is None or row["status"] != "confirmed":
+            raise ReturnError("That booking can't be returned. Reload the page and try again.")
+        if row["returned_at"]:
+            raise ReturnError("This vehicle's return was already recorded.")
+        if row["pickup"] > now:
+            raise ReturnError("This rental hasn't started yet, so there is nothing to return.")
+        updated = connection.execute("UPDATE reservations SET returned_at = ? WHERE id = ? AND returned_at IS NULL",
+                                     (now, row["id"]))
+        if updated.rowcount != 1:
+            raise ReturnError("This vehicle's return was already recorded.")

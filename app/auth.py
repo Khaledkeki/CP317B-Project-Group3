@@ -1,6 +1,7 @@
 """Account validation, bcrypt passwords, and revocable 15-minute JWT sessions."""
 
 from pathlib import Path
+import os
 import re
 import secrets
 import sqlite3
@@ -29,11 +30,17 @@ def load_signing_key(directory: Path) -> str:
     """Persist a random local key in the ignored data directory."""
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / "session.key"
-    try:
-        with path.open("x", encoding="ascii") as stream:
-            stream.write(secrets.token_hex(32))
-    except FileExistsError:
-        pass
+    if not path.exists():
+        # Write first, then link into place: the target never exists half-written,
+        # so a process starting at the same time cannot read an empty file.
+        candidate = directory / f".session.key.{secrets.token_hex(8)}"
+        candidate.write_text(secrets.token_hex(32), encoding="ascii")
+        try:
+            os.link(candidate, path)
+        except FileExistsError:
+            pass
+        finally:
+            candidate.unlink()
     key = path.read_text(encoding="ascii").strip()
     if len(key) < 64:
         raise RuntimeError("The local session signing key is invalid.")

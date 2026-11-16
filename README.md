@@ -1,16 +1,16 @@
 # Car Rental System
 
-CP317B - Group 03. Sprint 1 prototype.
+CP317B - Group 03. Sprint 2 prototype.
 
 ## Current status
 
-The prototype provides customer registration and sign-in, staff fleet management, vehicle search, and reservations. Search excludes confirmed bookings that overlap the requested dates. Customers can review estimated costs, confirm a booking, and find their reservation reference in their account. All four Sprint 1 stories are implemented and technically tested; Product Owner acceptance is pending.
+The prototype provides customer registration and sign-in, staff fleet management, vehicle search, reservations, customer rental history, online cancellation, staff daily rental monitoring with recorded returns, and a manager utilization report. Search excludes confirmed bookings that overlap the requested dates. Customers can review estimated costs, confirm a booking, cancel a future booking, and find every rental in their account. Staff can record a vehicle's return, which persists across restarts. All eight Sprint 1 and Sprint 2 stories are implemented and technically tested; Product Owner acceptance is pending.
 
 ## Stack
 
-- Python 3.12 (the version used to verify this setup)
+- Python 3.11 or newer (3.11.9 and 3.12 both used to verify this setup)
 - FastAPI and Uvicorn for the backend/server
-- Jinja2 HTML templates and plain CSS; JavaScript will be added where interactions require it
+- Jinja2 HTML templates and plain CSS, with a small script for live search filtering
 - SQLite through Python's built-in `sqlite3` module
 
 No Node.js installation, external database account, or API key is needed.
@@ -49,10 +49,10 @@ With the server running:
 
 1. Open <http://127.0.0.1:8000> and check that the home page loads with styling.
 2. Open <http://127.0.0.1:8000/health>. Expected JSON: `{"status":"ok","database":"connected"}`. This endpoint runs a SQLite query.
-3. Open <http://127.0.0.1:8000/docs> for the API documentation.
+3. Open <http://127.0.0.1:8000/docs> for the documented JSON endpoints. Most screens are server-rendered HTML and do not appear in the schema.
 4. Confirm `data/car_rental.db` was created locally when the server started.
 
-The server creates `users`, `sessions`, and `vehicles` tables on startup without deleting existing data. Registration always creates a customer; there is no public staff-role selector. Sign-out revokes the session in SQLite as well as clearing the cookie. Forms include CSRF protection; private responses use `Cache-Control: no-store`.
+The server creates the `users`, `sessions`, `vehicles`, and `reservations` tables on startup without deleting existing data, and adds the `returned_at` column to an older `reservations` table in place. Registration always creates a customer; there is no public staff-role selector. Sign-out revokes the session in SQLite as well as clearing the cookie. Forms include CSRF protection; private responses use `Cache-Control: no-store`.
 
 ## Try registration and login
 
@@ -89,9 +89,31 @@ Search shows cars marked Available by staff that have no overlapping confirmed r
 3. Select **Confirm reservation**. The server checks the saved rate and availability again, saves the booking, and shows its reference.
 4. Open **My reservations** to see the booking. Search for the same dates to verify that car no longer appears.
 
-Search and booking use local server time; timezone conversion and daylight-saving transitions are not modeled. The prototype collects no payment. Cancellation, separate rental-history management, and reporting remain later-sprint features. Use fictitious data and coordinate before entering test bookings into a shared database.
+Search and booking use local server time; timezone conversion and daylight-saving transitions are not modeled. The prototype collects no payment. Use fictitious data and coordinate before entering test bookings into a shared database.
 
-## Create a staff account locally
+## Try rental history and cancellation
+
+- Sign in as a customer and open **My rentals** at [http://127.0.0.1:8000/account](http://127.0.0.1:8000/account). Bookings are grouped into current, upcoming, past, and cancelled, and completed rentals show when they were returned.
+- Choose **Cancel** on an upcoming booking, review it, and confirm. The car's dates are released immediately and the booking moves to the cancelled group. A rental that has already started cannot be cancelled online.
+
+## Try daily rentals and the utilization report
+
+- Sign in as staff and open **Daily rentals**, or visit [http://127.0.0.1:8000/staff/daily](http://127.0.0.1:8000/staff/daily). Pick a branch and date to see pickups, cars on rent, returns due, and returns already recorded. Choose **Record return** when a car comes back.
+- Sign in as a manager and open **Utilization report**, or visit [http://127.0.0.1:8000/manager/reports/utilization](http://127.0.0.1:8000/manager/reports/utilization). Confirmed bookings are ranked by rental count for a branch and period, grouped by model, vehicle type, or category. Reports never show customer details.
+
+## Load optional demo data
+
+Every Sprint 2 page needs bookings to show anything useful. From the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m app.dev_seed
+```
+
+On macOS/Linux use `.venv/bin/python` instead. This adds fictitious accounts, eight vehicles, and thirteen bookings to your local database. Sign in with `demo_customer`, `demo_customer2`, `demo_staff`, or `demo_manager`; the password is `demo-pass-123`.
+
+The command refuses to run twice and never touches a database that already has the demo fleet. It is local demo data only: do not run it against a shared or real database.
+
+## Create a staff or manager account locally
 
 From a separate terminal in the repository root:
 
@@ -99,7 +121,7 @@ From a separate terminal in the repository root:
 .\.venv\Scripts\python.exe -m app.create_staff
 ```
 
-The command prompts for details and a password without echoing the password. It creates the local prototype's staff account only if one does not already exist. Staff sign-in uses the same `/login` page and redirects to `/staff`. Staff creation is a local administrative action, never a public registration option.
+The command prompts for details and a password without echoing the password. It creates one local prototype account only if that role does not already exist. Pass `--role manager` to provision a manager account, which is required to open the utilization report. Staff sign-in uses the same `/login` page and redirects to `/staff`. Account creation is a local administrative action, never a public registration option.
 
 An initial staff account was provisioned on this development machine. Its generated credentials are in the ignored local file `data/staff-credentials.txt`. Each teammate's database is separate: use the command above on another machine. Do not commit or share the local credentials file publicly.
 
@@ -112,7 +134,7 @@ An initial staff account was provisioned on this development machine. Its genera
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-On macOS/Linux, use `.venv/bin/python` instead. Tests use temporary databases and do not modify your local data. The suite has 14 authentication, 17 fleet, 9 search, and 12 reservation checks. See the files in `docs/` for technical verification and pending Product Owner review.
+On macOS/Linux, use `.venv/bin/python` instead. Tests use temporary databases and do not modify your local data. The suite has 15 authentication, 17 fleet, 9 search, 12 reservation, 11 Sprint 2 page, and 26 Sprint 2 backend checks (90 total). See the files in `docs/` for technical verification and pending Product Owner review.
 
 If port 8000 is occupied, use `--port 8001` and open the equivalent URLs on port 8001.
 
@@ -124,23 +146,24 @@ app/
   main.py                # Application factory, home, health, and startup
   accounts.py            # Registration/login pages and authorization dependencies
   auth.py                # Validation, hashing, and session operations
-  create_staff.py        # Local staff provisioning command
+  create_staff.py        # Local staff/manager provisioning command
   fleet.py               # Vehicle validation, persistence, and record retention
   fleet_routes.py        # Staff-only inventory, add/edit, and removal pages
   search.py              # Search validation and vehicle filtering
   search_routes.py       # Search page
-  reservations.py        # Pricing, booking transaction, and customer-owned queries
-  reservation_routes.py  # Review, confirmation, and receipt pages
-  database.py            # SQLite connections and database initialization
+  reservations.py        # Pricing, booking transaction, cancellation, returns, and history
+  reservation_routes.py  # Review, confirmation, receipt, and cancellation pages
+  reports.py             # Daily rental monitoring and utilization report queries
+  sprint2_routes.py      # Sprint 2 pages for history, cancellation, daily, and reports
+  database.py            # SQLite connections, schema, and column migration
   models.py              # Public user and vehicle models
-  templates/
-    base.html            # Shared HTML layout
-    index.html           # Initial home page
-  static/
+  dev_seed.py            # Optional local demo data for every Sprint 2 page
+  templates/             # Jinja2 pages for each screen
+  static/                # CSS and the search filter script
     css/styles.css       # Responsive styles
 data/                    # Local database, signing key, credentials; excluded from Git
-tests/                   # Authentication and fleet integration checks
-docs/                    # Technical verification record
+tests/                   # Authentication, fleet, search, reservation, and Sprint 2 checks
+docs/                    # Technical verification records and Sprint 2 screenshots
 requirements.txt         # Pinned Python dependencies
 requirements-dev.txt     # Additional test dependencies
 .gitignore
@@ -157,6 +180,17 @@ README.md
 | ADMIN-01 | Fleet inventory management | 5 | Implemented; Product Owner review pending |
 
 Source: the team's Milestone 2 product backlog. Further feature work requires review before implementation. Payment integration remains a scope decision to resolve with the Product Owner.
+
+## Sprint 2 scope
+
+| Story | Feature | Points | Status |
+| --- | --- | ---: | --- |
+| UI-03 | Customer rental history | 3 | Implemented; Product Owner review pending |
+| UI-04 | Online cancellation | 5 | Implemented; Product Owner review pending |
+| ADMIN-02 | Daily rental monitoring and returns | 5 | Implemented; Product Owner review pending |
+| REP-01 | Vehicle utilization report | 5 | Implemented; Product Owner review pending |
+
+Cancelled bookings release their dates and are excluded from reports. Returns are stored in SQLite, so they survive a restart.
 
 ## Team
 

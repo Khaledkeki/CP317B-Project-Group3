@@ -1,7 +1,7 @@
 """Sprint 2 pages: rental history (UI-03), cancellation (UI-04),
 daily rental monitoring (ADMIN-02), and the utilization report (REP-01).
 
-Data comes from app.sprint2_placeholders, which the backend owner will replace.
+Data comes from app.reservations and app.reports.
 """
 
 from datetime import date, timedelta
@@ -10,11 +10,12 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Depends, Form, HTTPException, Path, Request
 from fastapi.responses import RedirectResponse
 
-from app import sprint2_placeholders as data
+from app import reports
 from app.accounts import optional_user, page, require_staff, require_user, verify_csrf
 from app.fleet import CHOICES, list_branches
 from app.models import User
-from app.reservations import get_reservation, money
+from app.reservations import (CancellationError, ReturnError, booking_phase, cancel_reservation,
+                              get_reservation, money, record_return)
 
 router = APIRouter()
 
@@ -42,7 +43,7 @@ def cancel_review(request: Request, reference: str = Path(max_length=30)):
     booking, redirect = _customer_booking(request, reference)
     if redirect:
         return redirect
-    return page(request, "reservation_cancel.html", booking=booking, info=data.booking_phase(booking),
+    return page(request, "reservation_cancel.html", booking=booking, info=booking_phase(booking),
                 format_money=money)
 
 
@@ -53,9 +54,9 @@ def cancel_submit(request: Request, reference: str = Path(max_length=30), csrf_t
     if redirect:
         return redirect
     try:
-        data.cancel_reservation(request.app.state.database_path, booking["user_id"], reference)
-    except data.CancellationError as error:
-        return page(request, "reservation_cancel.html", booking=booking, info=data.booking_phase(booking),
+        cancel_reservation(request.app.state.database_path, booking["user_id"], reference)
+    except CancellationError as error:
+        return page(request, "reservation_cancel.html", booking=booking, info=booking_phase(booking),
                     format_money=money, errors={"form": str(error)}, status_code=409)
     return RedirectResponse(f"/account?cancelled={reference}#cancelled", status_code=303)
 
@@ -78,7 +79,7 @@ def daily_rentals(request: Request, branch: str = "", day: str = ""):
     if branch and branch.casefold() not in {option.casefold() for option in branches}:
         errors["branch"] = "Choose a branch from the list."
     branch = branch or (branches[0] if branches else "")
-    activity = (data.daily_activity(database, branch, selected_day)
+    activity = (reports.daily_activity(database, branch, selected_day)
                 if branch and not errors else {"pickups": [], "active": [], "returns": [], "returned": []})
     day_value = selected_day or date.today()
     return page(request, "daily_rentals.html", branches=branches, branch=branch, day=day_value,
@@ -94,8 +95,8 @@ def daily_return(request: Request, reference: str = Form("", max_length=30), bra
     verify_csrf(request, csrf_token)
     query = {"branch": branch, "day": day}
     try:
-        data.record_return(request.app.state.database_path, reference)
-    except data.ReturnError as error:
+        record_return(request.app.state.database_path, reference)
+    except ReturnError as error:
         query["error"] = str(error)
     else:
         query["returned"] = reference
@@ -107,7 +108,7 @@ def daily_return(request: Request, reference: str = Form("", max_length=30), bra
 @router.get("/manager/reports/utilization", include_in_schema=False, dependencies=[Depends(require_manager)])
 def utilization(request: Request, branch: str = "", start: str = "", end: str = "", group_by: str = "model"):
     database = request.app.state.database_path
-    default_start, default_end = data.default_report_period()
+    default_start, default_end = reports.default_report_period()
     errors = {}
     try:
         start_day = date.fromisoformat(start) if start else default_start
@@ -121,13 +122,13 @@ def utilization(request: Request, branch: str = "", start: str = "", end: str = 
         errors["end"] = "End date must be on or after the start date."
     elif not errors and (end_day - start_day).days > 366:
         errors["end"] = "Choose a period of one year or less."
-    if group_by not in data.REPORT_GROUPS:
+    if group_by not in reports.REPORT_GROUPS:
         errors["group_by"] = "Choose how to group the report."
         group_by = "model"
     branches = list_branches(database)
     if branch and branch.casefold() not in {option.casefold() for option in branches}:
         errors["branch"] = "Choose a branch from the list."
-    rows = [] if errors else data.utilization_report(database, branch, start_day, end_day, group_by)
+    rows = [] if errors else reports.utilization_report(database, branch, start_day, end_day, group_by)
     labels = CHOICES.get(group_by, {})
     total = sum(row["rentals"] for row in rows)
     for row in rows:
@@ -135,7 +136,7 @@ def utilization(request: Request, branch: str = "", start: str = "", end: str = 
         row["share"] = round(row["rentals"] * 100 / total) if total else 0
     return page(request, "utilization_report.html", branches=branches, branch=branch,
                 start=start or start_day.isoformat(), end=end or end_day.isoformat(), group_by=group_by,
-                groups=data.REPORT_GROUPS, rows=rows, total=total,
+                groups=reports.REPORT_GROUPS, rows=rows, total=total,
                 total_days=sum(row["rental_days"] for row in rows),
                 max_rentals=max((row["rentals"] for row in rows), default=0),
                 errors=errors, status_code=400 if errors else 200)
