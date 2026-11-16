@@ -122,7 +122,7 @@ An initial staff account was provisioned on this development machine. Its genera
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-On macOS/Linux, use `.venv/bin/python` instead. Tests use temporary databases and do not modify your local data. The suite has 15 authentication, 17 fleet, 9 search, 12 reservation, 11 Sprint 2 page, and 21 Sprint 2 backend checks (85 total). See the files in `docs/` for technical verification and pending Product Owner review.
+On macOS/Linux, use `.venv/bin/python` instead. Tests use temporary databases and do not modify your local data. The suite has 15 authentication, 17 fleet, 9 search, 12 reservation, 11 Sprint 2 page, and 24 Sprint 2 backend checks (88 total). See the files in `docs/` for technical verification and pending Product Owner review.
 
 If port 8000 is occupied, use `--port 8001` and open the equivalent URLs on port 8001.
 

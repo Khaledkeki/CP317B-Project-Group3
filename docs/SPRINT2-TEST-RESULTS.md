@@ -40,8 +40,8 @@ Two indexes were added: `reservations_customer(user_id, pickup)` and
 
 Command: `.venv/bin/python -m unittest discover -s tests`
 
-Result: **85 tests passed** (15 authentication, 17 fleet, 9 search,
-12 reservations, 11 Sprint 2 pages, 21 Sprint 2 backend).
+Result: **88 tests passed** (15 authentication, 17 fleet, 9 search,
+12 reservations, 11 Sprint 2 pages, 24 Sprint 2 backend).
 
 The new backend suite covers:
 
@@ -65,6 +65,9 @@ The new backend suite covers:
 | Lifecycle boundaries are inclusive: pickup at the minute is current, return at the minute is past, and the comparison holds across a year rollover | Pass |
 | Reports include retired vehicles and match the branch case-insensitively | Pass |
 | The report period allows 366 days and rejects 367 | Pass |
+| A vehicle name containing HTML is escaped on the account, daily, and report pages | Pass |
+| A form post carrying a foreign `Origin` header is rejected with 403 and changes nothing | Pass |
+| A booking returned early keeps holding its original dates (documented, conservative) | Pass |
 | Model, vehicle-type, and category grouping agree; period boundaries are inclusive | Pass |
 | A returned booking shows as completed with no cancel link | Pass |
 | The cancel page refuses a returned booking with a clear message | Pass |
@@ -113,3 +116,6 @@ Screenshots: `docs/screenshots/sprint2/`.
   managed manually through fleet management.
 - A late return recorded after the scheduled return date appears in the Returned
   group on the day the return was recorded, not on the missed scheduled day.
+- A booking returned early still holds its original dates, so the car cannot be
+  re-rented for the unused part of that window. This is deliberate: releasing
+  dates automatically could double-book a car whose key was handed back early.

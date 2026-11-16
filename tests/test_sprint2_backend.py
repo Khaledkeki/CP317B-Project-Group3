@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from app import auth, fleet, reports, reservations
 from app.database import get_connection, initialize_database
 from app.main import create_app
+from app.search import search_vehicles
 
 LEGACY_SCHEMA = """
     CREATE TABLE users (
@@ -321,6 +322,45 @@ class Sprint2BackendTests(unittest.TestCase):
                                      params={"start": "2025-01-01", "end": "2026-01-03"})
         self.assertEqual(over_limit.status_code, 400)
         self.assertIn("one year or less", over_limit.text)
+
+    # ---- untrusted content and request origin --------------------------------------
+    def test_vehicle_text_is_escaped_on_every_sprint2_page(self):
+        evil = fleet.save_vehicle(self.database, {
+            "fleet_code": "CAR-XSS", "name": "<script>alert('x')</script>", "branch": "Waterloo",
+            "vehicle_type": "sedan", "category": "economy", "seats": "5",
+            "transmission": "automatic", "fuel_type": "gasoline", "daily_rate": "10.00",
+            "status": "available"})
+        reference = self.book(self.customer, evil, at(-2), at(20))
+        self.as_user(self.customer)
+        account = self.client.get("/account").text
+        self.assertIn(reference, account)
+        self.assertNotIn("<script>alert", account)
+        self.assertIn("&lt;script&gt;alert", account)
+        self.as_user(self.staff)
+        daily = self.client.get("/staff/daily", params={"branch": "Waterloo"}).text
+        self.assertNotIn("<script>alert", daily)
+        self.as_user(self.manager)
+        report = self.client.get("/manager/reports/utilization").text
+        self.assertNotIn("<script>alert", report)
+
+    def test_form_posts_from_another_origin_are_rejected(self):
+        reference = self.book(self.customer, self.car, at(72), at(96))
+        self.as_user(self.customer)
+        token = self.csrf(self.client.get("/account").text)
+        blocked = self.client.post(f"/reservations/{reference}/cancel", data={"csrf_token": token},
+                                   headers={"origin": "https://evil.example"})
+        self.assertEqual(blocked.status_code, 403)
+        with get_connection(self.database) as connection:
+            self.assertEqual(connection.execute("SELECT status FROM reservations WHERE reference = ?",
+                                                (reference,)).fetchone()["status"], "confirmed")
+
+    def test_returning_a_car_early_keeps_the_original_dates_held(self):
+        reference = self.book(self.customer, self.car, at(-2), at(96))
+        reservations.record_return(self.database, reference)
+        vehicles, errors = search_vehicles(self.database, {"branch": "Waterloo", "pickup": at(24),
+                                                          "return_time": at(48)})
+        self.assertEqual(errors, {})
+        self.assertNotIn(self.car.id, [vehicle.id for vehicle in vehicles])
 
     # ---- migration ---------------------------------------------------------------
     def test_legacy_database_gains_the_column_without_data_loss(self):
